@@ -11,7 +11,7 @@ enum Function{
     case connect
     case login
     case batteryLevel
-    case aircoOn
-    case aircoOff
+    case airCoOn
+    case airCoOff
     
 }

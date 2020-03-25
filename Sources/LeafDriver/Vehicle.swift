@@ -9,8 +9,10 @@ import Foundation
 
 class Vehicle{
     
-    let vimNumber:String
+    let vinNumber:String
     
-    
+    init() {
+        vinNumber = ""
+    }
     
 }
