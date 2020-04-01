@@ -1,1 +1,7 @@
 *.request
+*.textClipping
+Sources/LeafDriver/File.swift
+Sources/LeafDriver/JSONbasedModel/.DS_Store
+Sources/.DS_Store
+.DS_Store
+.DS_Store
