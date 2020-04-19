@@ -7,14 +7,14 @@ import Foundation
 
 // MARK: - Profile
 struct Profile: Codable {
-    let vin, gdcUserID, gdcPassword, encAuthToken: String
-    let dcmID, nickname, modelyear: String
+    let vin, gdcUserid, gdcPassword, encAuthToken: String
+    let dcmid, nickname, modelyear: String
 
     enum CodingKeys: String, CodingKey {
         case vin
-        case gdcUserID = "gdcUserId"
+        case gdcUserid = "gdcUserId"
         case gdcPassword, encAuthToken
-        case dcmID = "dcmId"
+        case dcmid = "dcmId"
         case nickname, modelyear
     }
 }
@@ -39,19 +39,19 @@ extension Profile {
 
     func with(
         vin: String? = nil,
-        gdcUserID: String? = nil,
+        gdcUserid: String? = nil,
         gdcPassword: String? = nil,
         encAuthToken: String? = nil,
-        dcmID: String? = nil,
+        dcmid: String? = nil,
         nickname: String? = nil,
         modelyear: String? = nil
     ) -> Profile {
         return Profile(
             vin: vin ?? self.vin,
-            gdcUserID: gdcUserID ?? self.gdcUserID,
+            gdcUserid: gdcUserid ?? self.gdcUserid,
             gdcPassword: gdcPassword ?? self.gdcPassword,
             encAuthToken: encAuthToken ?? self.encAuthToken,
-            dcmID: dcmID ?? self.dcmID,
+            dcmid: dcmid ?? self.dcmid,
             nickname: nickname ?? self.nickname,
             modelyear: modelyear ?? self.modelyear
         )

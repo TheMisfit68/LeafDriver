@@ -7,22 +7,22 @@ import Foundation
 
 // MARK: - CustomerInfo
 struct CustomerInfo: Codable {
-    let userID, language, timezone, regionCode: String
-    let ownerID, eMailAddress, nickname, country: String
-    let vehicleImage, userVehicleBoundDurationSEC: String
+    let userid, language, timezone, regionCode: String
+    let ownerid, eMailAddress, nickname, country: String
+    let vehicleImage, userVehicleBoundDurationsec: String
     let vehicleInfo: VehicleInfo
 
     enum CodingKeys: String, CodingKey {
-        case userID = "UserId"
+        case userid = "UserId"
         case language = "Language"
         case timezone = "Timezone"
         case regionCode = "RegionCode"
-        case ownerID = "OwnerId"
+        case ownerid = "OwnerId"
         case eMailAddress = "EMailAddress"
         case nickname = "Nickname"
         case country = "Country"
         case vehicleImage = "VehicleImage"
-        case userVehicleBoundDurationSEC = "UserVehicleBoundDurationSec"
+        case userVehicleBoundDurationsec = "UserVehicleBoundDurationSec"
         case vehicleInfo = "VehicleInfo"
     }
 }
@@ -46,29 +46,29 @@ extension CustomerInfo {
     }
 
     func with(
-        userID: String? = nil,
+        userid: String? = nil,
         language: String? = nil,
         timezone: String? = nil,
         regionCode: String? = nil,
-        ownerID: String? = nil,
+        ownerid: String? = nil,
         eMailAddress: String? = nil,
         nickname: String? = nil,
         country: String? = nil,
         vehicleImage: String? = nil,
-        userVehicleBoundDurationSEC: String? = nil,
+        userVehicleBoundDurationsec: String? = nil,
         vehicleInfo: VehicleInfo? = nil
     ) -> CustomerInfo {
         return CustomerInfo(
-            userID: userID ?? self.userID,
+            userid: userid ?? self.userid,
             language: language ?? self.language,
             timezone: timezone ?? self.timezone,
             regionCode: regionCode ?? self.regionCode,
-            ownerID: ownerID ?? self.ownerID,
+            ownerid: ownerid ?? self.ownerid,
             eMailAddress: eMailAddress ?? self.eMailAddress,
             nickname: nickname ?? self.nickname,
             country: country ?? self.country,
             vehicleImage: vehicleImage ?? self.vehicleImage,
-            userVehicleBoundDurationSEC: userVehicleBoundDurationSEC ?? self.userVehicleBoundDurationSEC,
+            userVehicleBoundDurationsec: userVehicleBoundDurationsec ?? self.userVehicleBoundDurationsec,
             vehicleInfo: vehicleInfo ?? self.vehicleInfo
         )
     }

@@ -15,7 +15,7 @@ public protocol LeafProtocol{
     
     var initialAppString:String {get}
     
-    var commands:[LeafCommand : [LeafParameter]] {get}
+    var requiredCommandParameters:[LeafCommand : [LeafParameter]] {get}
     
 
 }

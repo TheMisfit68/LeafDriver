@@ -15,10 +15,12 @@ public struct LeafProtocolV2:LeafProtocol{
     
     public var initialAppString:String = "9s5rfKVuMrT03RtzajWNcA"
             
-    public let commands: [LeafCommand : [LeafParameter]] = [
+    public let requiredCommandParameters: [LeafCommand : [LeafParameter]] = [
         .connect : [.initialAppStr],
-        .login : [.initialAppStr, .customSessionID, .regionCode, .password, .userID],
-        .batteryStatus : [.initialAppStr, .regionCode, .language, .dcmid, .vin, .timeZone, .userID],
+        .login : [.initialAppStr, .regionCode, .userID, .password],
+        .batteryStatus : [.regionCode, .vin, .customSessionID],
+        
+        .batteryUpdate : [.regionCode, .vin, .timeZone, .resultKey, .customSessionID],
         .airCoOn : [],
         .airCoOff : []
     ]

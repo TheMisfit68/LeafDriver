@@ -8,20 +8,20 @@ import Foundation
 // MARK: - VehicleInfo
 struct VehicleInfo: Codable {
     let vin, dcmid, simid, naviid: String
-    let encryptedNAVIID, msn, lastVehicleLoginTime: String
+    let encryptednaviid, msn, lastVehicleLoginTime: String
     let userVehicleBoundTime: Date
-    let lastDCMUseTime, nonaviFlg, carName, carImage: String
+    let lastdcmUseTime, nonaviFlg, carName, carImage: String
 
     enum CodingKeys: String, CodingKey {
         case vin = "VIN"
         case dcmid = "DCMID"
         case simid = "SIMID"
         case naviid = "NAVIID"
-        case encryptedNAVIID = "EncryptedNAVIID"
+        case encryptednaviid = "EncryptedNAVIID"
         case msn = "MSN"
         case lastVehicleLoginTime = "LastVehicleLoginTime"
         case userVehicleBoundTime = "UserVehicleBoundTime"
-        case lastDCMUseTime = "LastDCMUseTime"
+        case lastdcmUseTime = "LastDCMUseTime"
         case nonaviFlg = "NonaviFlg"
         case carName = "CarName"
         case carImage = "CarImage"
@@ -51,11 +51,11 @@ extension VehicleInfo {
         dcmid: String? = nil,
         simid: String? = nil,
         naviid: String? = nil,
-        encryptedNAVIID: String? = nil,
+        encryptednaviid: String? = nil,
         msn: String? = nil,
         lastVehicleLoginTime: String? = nil,
         userVehicleBoundTime: Date? = nil,
-        lastDCMUseTime: String? = nil,
+        lastdcmUseTime: String? = nil,
         nonaviFlg: String? = nil,
         carName: String? = nil,
         carImage: String? = nil
@@ -65,11 +65,11 @@ extension VehicleInfo {
             dcmid: dcmid ?? self.dcmid,
             simid: simid ?? self.simid,
             naviid: naviid ?? self.naviid,
-            encryptedNAVIID: encryptedNAVIID ?? self.encryptedNAVIID,
+            encryptednaviid: encryptednaviid ?? self.encryptednaviid,
             msn: msn ?? self.msn,
             lastVehicleLoginTime: lastVehicleLoginTime ?? self.lastVehicleLoginTime,
             userVehicleBoundTime: userVehicleBoundTime ?? self.userVehicleBoundTime,
-            lastDCMUseTime: lastDCMUseTime ?? self.lastDCMUseTime,
+            lastdcmUseTime: lastdcmUseTime ?? self.lastdcmUseTime,
             nonaviFlg: nonaviFlg ?? self.nonaviFlg,
             carName: carName ?? self.carName,
             carImage: carImage ?? self.carImage
