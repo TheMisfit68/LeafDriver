@@ -1,30 +1,13 @@
 import Foundation
 import Combine
 import CryptoSwift
+import SiriDriver
 
 @available(OSX 10.15, *)
-public class LeafDriver{
+public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
     
-    var restAPI:RestAPI<LeafCommand, LeafParameter>
-    let standardUserDefaults = UserDefaults.standard
-    
-    var encryptionKey:EncryptionKey?
-    var connectionPublisher:AnyPublisher<EncryptionKey?, Error>!
-    var connectionReceiver:Cancellable!
-    
-    var session:Session?
-    var logginPublisher:AnyPublisher<Session?, Error>!
-    var loginReceiver:Cancellable!
-    
-    var battery:Battery?
-    var batteryStatsPublisher:AnyPublisher<Battery?, Error>!
-    var batteryStatsReceiver:Cancellable!
-    
-    typealias FunctionPointer = ()->()
-    typealias MaxRetryCount = Int
-    var commandQueue:[LeafCommand:(FunctionPointer, MaxRetryCount)] = [:]
-    
-    private enum ConnectionState:Int, Comparable{
+    public let siriDriver = SiriDriver(language: .flemish)
+    public enum ConnectionState:Int, Comparable{
         
         case disconnected
         case connected
@@ -37,8 +20,7 @@ public class LeafDriver{
         }
     }
     
-    
-    private var connectionState:ConnectionState = .disconnected{
+    public var connectionState:ConnectionState = .disconnected{
         
         // Acts as a state engine
         didSet{
@@ -54,6 +36,7 @@ public class LeafDriver{
                     commandQueue.forEach{ command, queueInfo in
                         let funtionToCall = queueInfo.0
                         funtionToCall()
+                        sleep(2)
                     }
                 }
             case .failed:
@@ -62,102 +45,29 @@ public class LeafDriver{
         }
     }
     
+    public var batteryChecker:BatteryChecker!
+    public var acController:ACController!
+    public var charger:Charger!
     
+    public typealias FunctionPointer = ()->()
+    public typealias MaxRetryCount = Int
+    public var commandQueue:[LeafCommand:(FunctionPointer, MaxRetryCount)] = [:]
     
-    public init(leafProtocol:LeafProtocol){
-        
-        let userSettings:[String:Any] = standardUserDefaults.dictionary(forKey: "LeafSettings") ?? [:]
-        var userParameters:[LeafParameter:String] = [.initialAppStr: leafProtocol.initialAppString]
-        
-        // if no userdefaults present yet, provide some for testing purposes
-        userParameters[.regionCode] = userSettings["RegionCode"] as? String ?? Region.europe.rawValue
-        userParameters[.language] = userSettings["Language"] as? String ?? Language.flemish.rawValue
-        userParameters[.userID] = userSettings["UserName"] as? String ?? "myUserName"
-        userParameters[.clearPassword]  = userSettings["Password"] as? String ?? "myClearPassword"
-        
-        self.restAPI = RestAPI(baseURL: leafProtocol.baseURL, endpointParameters: leafProtocol.requiredCommandParameters, defaultParameters:userParameters)
-        self.connect()
-    }
+    let standardUserDefaults = UserDefaults.standard
     
-    public func getBatteryStatus(){
-        
-        if self.connectionState == .loggedIn{
-            updateParameters()
-            batteryStatsPublisher = restAPI.publish(command: .batteryStatus)
-            batteryStatsReceiver = batteryStatsPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                receiveValue: {value in
-                                                                                    self.battery = value
-                                                                                    if self.battery != nil{
-                                                                                        self.removeFromQueue(command: .batteryStatus)
-                                                                                        print(self.battery!)
-                                                                                        self.connectionState = .loggedIn
-                                                                                    }else{
-                                                                                        self.addToQueue(command: .batteryStatus, function: self.getBatteryStatus,maxRetries: 2)
-                                                                                        self.connectionState = .failed
-                                                                                    }
-            }
-            )
-        }else{
-            self.addToQueue(command: .batteryStatus, function: self.getBatteryStatus)
-        }
-        
-    }
+    var connectionPublisher:AnyPublisher<ConnectionInfo?, Error>!
+    var connectionReceiver:Cancellable!
     
-    private func connect(){
-        
-        updateParameters()
-        connectionPublisher = restAPI.publish(command: .connect)
-        
-        connectionReceiver = connectionPublisher.sink(receiveCompletion: {completion in},
-                                                      receiveValue: {value in
-                                                        self.encryptionKey = value
-                                                        if self.encryptionKey != nil{
-                                                            self.connectionState = .connected
-                                                        }
-        }
-        )
-    }
+    var logginPublisher:AnyPublisher<Session?, Error>!
+    var loginReceiver:Cancellable!
     
-    private func login(){
-        
-        updateParameters()
-        logginPublisher = restAPI.publish(command: .login)
-        
-        loginReceiver = logginPublisher.sink(receiveCompletion: {completion in},
-                                             receiveValue: {value in
-                                                self.session = value
-                                                if self.session != nil{
-                                                    self.connectionState = .loggedIn
-                                                }
-        }
-        )
-        
-    }
+    var connectionInfo:ConnectionInfo?
+    var session:Session?
     
-    private func addToQueue(command:LeafCommand, function:@escaping FunctionPointer, maxRetries:MaxRetryCount = 1){
+    var parameters:[LeafParameter:String]{
         
-        if commandQueue[command] == nil{
-            commandQueue[command] = (function, maxRetries)
-        }else if let currentEntry = commandQueue[command]{
-            let retriesLeft = currentEntry.1-1
-            commandQueue[command] = (function, retriesLeft)
-            if retriesLeft > 0{
-            }else{
-                commandQueue.removeValue(forKey:command)
-            }
-        }
-    }
-    
-    private func removeFromQueue(command:LeafCommand){
-        if commandQueue[command] != nil{
-            commandQueue.removeValue(forKey:command)
-        }
-    }
-    
-    
-    private func updateParameters(){
-        
-        var parameter:LeafParameter
+        var currentParameter:LeafParameter
+        var currentParameters:[LeafParameter:String] = baseParameters
         
         func encryptUsingBlowfish(password:String, key:String)->String{
             
@@ -170,50 +80,133 @@ public class LeafDriver{
             
         }
         
-        // SessionID
+        // User
         // UserID
-        parameter = LeafParameter.customSessionID
-        
-        if let parameterValue = session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.customSessionid{
-            restAPI.form.parameters[parameter] = restAPI.form.encode(parameterValue)
+        currentParameter = LeafParameter.userID
+        if let currentValue = session?.customerInfo.eMailAddress{
+            currentParameters[currentParameter] = currentValue
         }
         
-        // UserID
-        parameter = LeafParameter.userID
-        if let parameterValue = session?.customerInfo.eMailAddress{
-            restAPI.form.parameters[parameter] = parameterValue
+        // Clear password
+        currentParameter = LeafParameter.password
+        if let clearPassword = currentParameters[.clearPassword], let encryptionkey = connectionInfo?.baseprm{
+            let currentValue = encryptUsingBlowfish(password: clearPassword, key:encryptionkey)
+            currentParameters[currentParameter] = currentValue
         }
         
-        // Encrypted password
-        parameter = LeafParameter.password
-        if let clearPassword = restAPI.form.parameters[LeafParameter.clearPassword], let encryptionkey = encryptionKey?.baseprm{
-            let parameterValue = encryptUsingBlowfish(password: clearPassword, key:encryptionkey)
-            restAPI.form.parameters[parameter] = parameterValue
-        }
-        
-        // VIN
-        parameter = LeafParameter.vin
-        if let parameterValue = session?.vehicle.profile.vin{
-            restAPI.form.parameters[parameter] = parameterValue
-        }
-        
-        // DCMID
-        parameter = LeafParameter.dcmid
-        if let parameterValue = session?.vehicle.profile.dcmid{
-            restAPI.form.parameters[parameter] = parameterValue
+        // RegionCode
+        currentParameter = LeafParameter.regionCode
+        if let currentValue = session?.customerInfo.regionCode{
+            currentParameters[currentParameter] = currentValue
         }
         
         // Timezone
-        parameter = LeafParameter.timeZone
-        if let parameterValue = session?.customerInfo.timezone{
-            restAPI.form.parameters[parameter] = parameterValue
+        currentParameter = LeafParameter.timeZone
+        if let currentValue = session?.customerInfo.timezone{
+            currentParameters[currentParameter] = currentValue
         }
         
-        // TimeFrom
-        //             parameter = LeafParameter.timeFrom
-        //        if let parameterValue = session?.customerInfo.vehicleInfo.userVehicleBoundTime{
-        //                 restAPI.form.parameters[parameter] = parameterValue
-        //             }
+        // Language
+        currentParameter = LeafParameter.language
+        if let currentValue = session?.customerInfo.language{
+            currentParameters[currentParameter] = currentValue
+        }
+        
+        
+        
+        // Session
+        // SessionID
+        currentParameter = LeafParameter.customSessionID
+        if let currentValue = session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.customSessionid{
+            currentParameters[currentParameter] = HTTPForm<LeafParameter>.Encode(currentValue)
+        }
+        
+        // Vehicle
+        // VIN
+        currentParameter = LeafParameter.vin
+        if let currentValue = session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.vin{
+            currentParameters[currentParameter] = currentValue
+        }
+        
+        // DCMID
+        currentParameter = LeafParameter.dcmid
+        if let currentValue = session?.vehicle.profile.dcmId{
+            currentParameters[currentParameter] = HTTPForm<LeafParameter>.Encode(currentValue)
+        }
+        
+        return currentParameters
+    }
+    
+    public init(leafProtocol:LeafProtocol){
+        
+        let userSettings:[String:Any] = standardUserDefaults.dictionary(forKey: "LeafSettings") ?? [:]
+        var userParameters:[LeafParameter:String] = [.initialAppStr: leafProtocol.initialAppString]
+        
+        // if no userdefaults present yet, provide some for testing purposes
+        userParameters[.userID] = userSettings["UserName"] as? String ?? "myUserName"
+        userParameters[.clearPassword]  = userSettings["Password"] as? String ?? "myClearPassword"
+        
+        userParameters[.regionCode] = userSettings["RegionCode"] as? String ?? Region.europe.rawValue
+        userParameters[.language] = userSettings["Language"] as? String ?? Language.flemish.rawValue
+        userParameters[.timeZone] = userSettings["TimeZone"] as? String ?? TimeZone.brussels.rawValue
+        
+        super.init(baseURL: leafProtocol.baseURL, endpointParameters: leafProtocol.requiredCommandParameters, baseParameters:userParameters)
+        
+        batteryChecker = BatteryChecker(mainDriver: self)
+        acController = ACController(mainDriver: self)
+        charger = Charger(mainDriver: self)
+        self.connect()
+    }
+    
+    internal func addToQueue(command:LeafCommand, function:@escaping FunctionPointer, maxRetries:MaxRetryCount = 1){
+        
+        if commandQueue[command] == nil{
+            commandQueue[command] = (function, maxRetries)
+        }else if let currentEntry = commandQueue[command]{
+            let retriesLeft = currentEntry.1-1
+            commandQueue[command] = (function, retriesLeft)
+            if retriesLeft > 0{
+            }else{
+                removeFromQueue(command: command)
+            }
+        }
+    }
+    
+    internal func removeFromQueue(command:LeafCommand){
+        if commandQueue[command] != nil{
+            commandQueue.removeValue(forKey:command)
+        }
+    }
+    
+    
+    private func connect(){
+        
+        connectionPublisher = publish(command: .connect, parameters: parameters)
+        
+        connectionReceiver = connectionPublisher.sink(receiveCompletion: {completion in},
+                                                      receiveValue: {value in
+                                                        if let connectionResult = value{
+                                                            self.connectionInfo = connectionResult
+                                                            self.connectionState = .connected
+                                                        }
+        }
+        )
+    }
+    
+    private func login(){
+        
+        logginPublisher = publish(command: .login, parameters: parameters)
+        
+        loginReceiver = logginPublisher.sink(receiveCompletion: {completion in},
+                                             receiveValue: {value in
+                                                if let loginResult = value{
+                                                    self.session = loginResult
+                                                    self.connectionState = .loggedIn
+                                                }
+        }
+        )
+        
     }
     
 }
+
