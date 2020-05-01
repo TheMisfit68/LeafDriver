@@ -1,12 +1,12 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
-//   let batteryUpdate = try? newJSONDecoder().decode(batteryUpdate.self, from: jsonData)
+//   let batteryUpdateRespons = try? newJSONDecoder().decode(batteryUpdateRespons.self, from: jsonData)
 
 import Foundation
 
-// MARK: - batteryUpdate
-struct BatteryUpdate: Codable {
+// MARK: - BatteryUpdateRespons
+struct BatteryUpdateRespons: Codable {
     let status: Int
     let responseFlag: String
     let operationResult: String
@@ -20,9 +20,9 @@ struct BatteryUpdate: Codable {
     let chargeStatus: String
     let batteryDegradation: String
     let batteryCapacity: String
-    let timeRequiredToFull: batteryUpdateTimeRequiredToFull
-    let timeRequiredToFull200: batteryUpdateTimeRequiredToFull
-    let timeRequiredToFull2006KW: batteryUpdateTimeRequiredToFull
+    let timeRequiredToFull: BatteryUpdateTimeRequiredToFull
+    let timeRequiredToFull200: BatteryUpdateTimeRequiredToFull
+    let timeRequiredToFull2006KW: BatteryUpdateTimeRequiredToFull
 
     enum CodingKeys: String, CodingKey {
         case status = "status"
@@ -44,8 +44,8 @@ struct BatteryUpdate: Codable {
     }
 }
 
-// MARK: - batteryUpdateTimeRequiredToFull
-struct batteryUpdateTimeRequiredToFull: Codable {
+// MARK: - BatteryUpdateTimeRequiredToFull
+struct BatteryUpdateTimeRequiredToFull: Codable {
     let hours: String
     let minutes: String
 

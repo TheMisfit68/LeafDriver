@@ -17,12 +17,19 @@ public class ACController:RestAPI<LeafCommand, LeafParameter>{
     var airCoStatusPublisher:AnyPublisher<AirCoStatus?, Error>!
     var airCoStatusReceiver:Cancellable!
     
-    var airCoCommandResultKeyPublisher:AnyPublisher<AirCoCommandResultKey?, Error>!
-    var airCoCommandResultKeyReceiver:Cancellable!
-    var airCoCommandStatusPublisher:AnyPublisher<AirCoCommandStatus?, Error>!
-    var airCoCommandStatusReceiver:Cancellable!
-    var airCoUpdatePublisher:AnyPublisher<AirCoUpdate?, Error>!
-    var airCoUpdateReceiver:Cancellable!
+    var airCoOnResultKeyPublisher:AnyPublisher<AirCoOnResultKey?, Error>!
+    var airCoOnResultKeyReceiver:Cancellable!
+    var airCoOnStatusPublisher:AnyPublisher<AirCoOnStatus?, Error>!
+    var airCoOnStatusReceiver:Cancellable!
+    var airCoOnResponsPublisher:AnyPublisher<AirCoOnRespons?, Error>!
+    var airCoOnResponsReceiver:Cancellable!
+    
+    var airCoOffResultKeyPublisher:AnyPublisher<AirCoOffResultKey?, Error>!
+    var airCoOffResultKeyReceiver:Cancellable!
+    var airCoOffStatusPublisher:AnyPublisher<AirCoOffStatus?, Error>!
+    var airCoOffStatusReceiver:Cancellable!
+    var airCoOffResponsPublisher:AnyPublisher<AirCoOffRespons?, Error>!
+    var airCoOffResponsReceiver:Cancellable!
     
     public enum airCoState{
         case off
@@ -39,7 +46,8 @@ public class ACController:RestAPI<LeafCommand, LeafParameter>{
         }
     }
     
-    var airCoCommandResultKey:AirCoCommandResultKey?
+    var airCoOnResultKey:AirCoOnResultKey?
+    var airCoOffResultKey:AirCoOffResultKey?
     
     var parameters:[LeafParameter:String]{
         
@@ -48,7 +56,7 @@ public class ACController:RestAPI<LeafCommand, LeafParameter>{
         
         // ResultKey
         currentParameter = LeafParameter.resultKey
-        if let currentValue = airCoCommandResultKey?.resultKey{
+        if let currentValue = airCoOnResultKey?.resultKey{
             currentParameters[currentParameter] = currentValue
         }
         
@@ -65,31 +73,24 @@ public class ACController:RestAPI<LeafCommand, LeafParameter>{
     public func getAirCoStatus(){
         
         let command:LeafCommand = .airCoStatus
-        let thisMethod:LeafDriver.FunctionPointer = getAirCoStatus
+        let thisMethod = getAirCoStatus
         let maxRetries = 2
         if mainDriver.connectionState == .loggedIn{
             
-            airCoStatusPublisher = publish(command: command, parameters: parameters)
+            airCoStatusPublisher = publish(command: command, parameters: parameters, maxRetries: maxRetries)
             
-            airCoStatusReceiver = airCoStatusPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                              receiveValue: {value in
-                                                                                if let airCoStatus = value{
-                                                                                    self.airCoStatus = airCoStatus
-                                                                                    self.mainDriver.removeFromQueue(command: command)
-                                                                                    self.mainDriver.connectionState = .loggedIn
-                                                                                }else{
-                                                                                    self.mainDriver.addToQueue(command: command, function:
-                                                                                        thisMethod,maxRetries: maxRetries)
-                                                                                    self.mainDriver.connectionState = .failed
-                                                                                }
-                                                                                
-                                                                                
-            }
+            airCoStatusReceiver = airCoStatusPublisher
+                .sink(receiveCompletion: {completion in},
+                      receiveValue: {value in
+                        if let airCoStatus = value{
+                            self.airCoStatus = airCoStatus
+                            self.mainDriver.connectionState = .loggedIn
+                        }
+                }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
-        
     }
     
     public func setAirCo(to airCoState:airCoState){
@@ -105,137 +106,112 @@ public class ACController:RestAPI<LeafCommand, LeafParameter>{
     private func setAirCoOn(){
         
         let command:LeafCommand = .airCoOnRequest
-        let thisMethod:LeafDriver.FunctionPointer = self.setAirCoOn
+        let thisMethod = self.setAirCoOn
         let maxRetries = 2
         if mainDriver.connectionState == .loggedIn{
             
-            airCoCommandResultKeyPublisher = publish(command: command, parameters: parameters)
+            airCoOnResultKeyPublisher = publish(command: command, parameters: parameters, maxRetries: maxRetries)
             
-            airCoCommandResultKeyReceiver = airCoCommandResultKeyPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                                  receiveValue: {value in
-                                                                                                    if let airCoCommandResultKey = value{
-                                                                                                        self.airCoCommandResultKey = airCoCommandResultKey
-                                                                                                        self.mainDriver.removeFromQueue(command: command)
-                                                                                                        self.checkCommandCompletion()
-                                                                                                        self.mainDriver.connectionState = .loggedIn
-                                                                                                    }else{
-                                                                                                        self.mainDriver.addToQueue(command: command, function:
-                                                                                                            thisMethod,maxRetries: maxRetries)
-                                                                                                        self.mainDriver.connectionState = .failed
-                                                                                                    }
-                                                                                                    
-                                                                                                    
+            airCoOnResultKeyReceiver = airCoOnResultKeyPublisher.sink(receiveCompletion: {completion in},
+                                                                                        receiveValue: {value in
+                                                                                            if let airCoOnResultKey = value{
+                                                                                                self.airCoOnResultKey = airCoOnResultKey
+                                                                                                self.checkAircoOnCompletion()
+                                                                                                self.mainDriver.connectionState = .loggedIn
+                                                                                            }
             }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
     }
     
     private func setAirCoOff(){
         
         let command:LeafCommand = .airCoOffRequest
-        let thisMethod:LeafDriver.FunctionPointer = self.setAirCoOff
+        let thisMethod = self.setAirCoOff
         let maxRetries = 2
         if mainDriver.connectionState == .loggedIn{
             
-            airCoCommandResultKeyPublisher = publish(command: command, parameters: parameters)
+            airCoOffResultKeyPublisher = publish(command: command, parameters: parameters, maxRetries: maxRetries)
             
-            airCoCommandResultKeyReceiver = airCoCommandResultKeyPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                                  receiveValue: {value in
-                                                                                                    if let airCoCommandResultKey = value{
-                                                                                                        self.airCoCommandResultKey = airCoCommandResultKey
-                                                                                                        self.mainDriver.removeFromQueue(command: command)
-                                                                                                        self.checkCommandCompletion()
-                                                                                                        self.mainDriver.connectionState = .loggedIn
-                                                                                                    }else{
-                                                                                                        self.mainDriver.addToQueue(command: command, function:
-                                                                                                            thisMethod,maxRetries: maxRetries)
-                                                                                                        self.mainDriver.connectionState = .failed
-                                                                                                    }
-                                                                                                    
-                                                                                                    
+            airCoOffResultKeyReceiver = airCoOffResultKeyPublisher.sink(receiveCompletion: {completion in},
+                                                                                          receiveValue: {value in
+                                                                                            if let airCoOffResultKey = value{
+                                                                                                self.airCoOffResultKey = airCoOffResultKey
+                                                                                                //                                                                                                self.checkAircoOffCompletion()
+                                                                                                self.mainDriver.connectionState = .loggedIn
+                                                                                            }
             }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
         
     }
     
-    private func checkCommandCompletion(){
+    private func checkAircoOnCompletion(){
         
         let command:LeafCommand = .airCoUpdate
-        let thisMethod:LeafDriver.FunctionPointer = self.checkCommandCompletion
+        let thisMethod = self.checkAircoOnCompletion
         let maxRetries = 10
         
         if mainDriver.connectionState == .loggedIn{
             
-            airCoCommandStatusPublisher = publish(command: command, parameters: parameters)
-            airCoCommandStatusReceiver = airCoCommandStatusPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                            receiveValue: {value in
-                                                                                                if let airCoUpdate = value{
-                                                                                                    if airCoUpdate.responseFlag == "1"{
-                                                                                                        self.mainDriver.removeFromQueue(command: command)
-                                                                                                        self.parseAirCoUpdate()
-                                                                                                    }else{
-                                                                                                        self.mainDriver.addToQueue(command: command, function:
-                                                                                                            thisMethod,maxRetries: maxRetries)
-                                                                                                    }
-                                                                                                    self.mainDriver.connectionState = .loggedIn
-                                                                                                }else{
-                                                                                                    self.mainDriver.addToQueue(command: command, function:
-                                                                                                        thisMethod,maxRetries: maxRetries)
-                                                                                                    self.mainDriver.connectionState = .failed
-                                                                                                }
-                                                                                                
+            airCoOnStatusPublisher = publish(command: command, parameters: parameters, maxRetries: maxRetries)
+            airCoOnStatusReceiver = airCoOnStatusPublisher.sink(receiveCompletion: {completion in},
+                                                                                  receiveValue: {value in
+                                                                                    print("Test \(value)")
+                                                                                    if let airCoUpdate = value{
+                                                                                        if airCoUpdate.responseFlag == "1"{
+                                                                                            self.parseAirCoOnRespons()
+                                                                                        }else{
+                                                                                            self.mainDriver.commandQueue.add(command: command, function: thisMethod)
+                                                                                        }
+                                                                                        self.mainDriver.connectionState = .loggedIn
+                                                                                    }
+                                                                                    
             }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
         
     }
     
-    private func parseAirCoUpdate(){
+    private func parseAirCoOnRespons(){
         
         let command:LeafCommand = .airCoUpdate
-        let thisMethod:LeafDriver.FunctionPointer = self.parseAirCoUpdate
+        let thisMethod = self.parseAirCoOnRespons
         let maxRetries = 2
         
         if mainDriver.connectionState == .loggedIn{
             
-            airCoUpdatePublisher = publish(command: command, parameters: parameters)
+            airCoOnResponsPublisher = publish(command: command, parameters: parameters, maxRetries: maxRetries)
             
-            airCoUpdateReceiver = airCoUpdatePublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                  receiveValue: {value in
-                                                                                    if let airCoUpdate = value{
-                                                                                        if airCoUpdate.responseFlag == "1"{
-                                                                                            self.mainDriver.removeFromQueue(command: command)
+            airCoOnResponsReceiver = airCoOnResponsPublisher.sink(receiveCompletion: {completion in},
+                                                                                    receiveValue: {value in
+                                                                                        print("airCoUpdate \(value)")
+                                                                                        if let airCoUpdate = value{
+                                                                                            if airCoUpdate.responseFlag == "1"{
+                                                                                                
+                                                                                                //TODO: - set aircoUpdate=>aircostatus?
+                                                                                                //                                                                                            self.airCoStatus.
+                                                                                                
+                                                                                            }else{
+                                                                                                self.mainDriver.commandQueue.add(command: command, function: thisMethod)
+                                                                                            }
+                                                                                            self.mainDriver.connectionState = .loggedIn
                                                                                             
-                                                                                            //TODO: - set aircoUpdate=>aircostatus?
-//                                                                                            self.airCoStatus.
-                                                                                            
-                                                                                        }else{
-                                                                                            self.mainDriver.addToQueue(command: command, function:
-                                                                                                thisMethod,maxRetries: maxRetries)
                                                                                         }
-                                                                                        self.mainDriver.connectionState = .loggedIn
                                                                                         
-                                                                                    }else{
-                                                                                        self.mainDriver.addToQueue(command: command, function:
-                                                                                            thisMethod,maxRetries: maxRetries)
-                                                                                        self.mainDriver.connectionState = .failed
-                                                                                    }
-                                                                                    
-                                                                                    
+                                                                                        
             }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
         
     }
     
 }
-

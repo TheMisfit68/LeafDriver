@@ -1,12 +1,12 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
-//   let airCoUpdate = try? newJSONDecoder().decode(airCoUpdate.self, from: jsonData)
+//   let airCoOnRespons = try? newJSONDecoder().decode(airCoOnRespons.self, from: jsonData)
 
 import Foundation
 
-// MARK: - airCoUpdate
-struct AirCoUpdate: Codable {
+// MARK: - AirCoOnRespons
+struct AirCoOnRespons: Codable {
     let status: Int
     let responseFlag: String
     let operationResult: String

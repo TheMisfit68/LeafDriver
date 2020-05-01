@@ -23,6 +23,7 @@ public class RestAPI<E:StringRepresentableEnum, P:StringRepresentableEnum>{
     var endpointParameters:[E:[P]]
     var baseParameters:[P:String]
     
+    
     public init(baseURL:String, endpointParameters:[E:[P]], baseParameters:[P:String] = [:]){
         
         self.baseURL = baseURL
@@ -31,7 +32,7 @@ public class RestAPI<E:StringRepresentableEnum, P:StringRepresentableEnum>{
         
     }
     
-    public func publish<T:Decodable>(command:E, parameters:[P:String])->AnyPublisher<T?, Error>{
+    public func publish<T:Decodable>(command:E, parameters:[P:String], maxRetries:Int = 2, retryDelay:UInt32 = 2)->AnyPublisher<T?, Error>{
         
         let url = URL(string:baseURL+command.stringValue)
         var request = URLRequest(url: url!)
@@ -47,28 +48,7 @@ public class RestAPI<E:StringRepresentableEnum, P:StringRepresentableEnum>{
             print(bodyDescription)
             print()
         }
-        return DecodingPublisher.Publisher(from: request)
-    }
-    
-    public func publish(command:E, parameters:[P:String])->AnyPublisher<[String:Any]?, Error>{
-        
-        let url = URL(string:baseURL+command.stringValue)
-        
-        var request = URLRequest(url: url!)
-        request.httpMethod = RESTmethod.POST.rawValue
-        request.allHTTPHeaderFields = ["Content-Type" : "application/x-www-form-urlencoded"]
-        
-        let parameters = baseParameters.merging(parameters) {$1}
-        let form = HTTPForm(parametersToInclude: endpointParameters[command] ?? [], currentParameters: parameters)
-        let body = form.composeBody(type: .Form)
-        request.httpBody = body
-        print()
-        print("🔃 Publishing \(command.rawValue)")
-        if let printableBody = form.composeBody(type: .Custom(seperator: "\n")), let bodyDescription = String(data:printableBody,encoding: .utf8){
-            print(bodyDescription)
-            print()
-        }
-        return DecodingPublisher.Publisher(from: request)
+        return DecodingPublisher.Publisher(from: request, maxRetries: maxRetries, retryDelay:retryDelay)
     }
     
 }

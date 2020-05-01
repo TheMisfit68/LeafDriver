@@ -1,12 +1,12 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
-//   let batteryUpdateStatus = try? newJSONDecoder().decode(batteryUpdateStatus.self, from: jsonData)
+//   let airCoOffStatus = try? newJSONDecoder().decode(airCoOffStatus.self, from: jsonData)
 
 import Foundation
 
-// MARK: - BatteryUpdateStatus
-struct BatteryUpdateStatus: Codable {
+// MARK: - AirCoOffStatus
+struct AirCoOffStatus: Codable {
     let status: Int
     let responseFlag: String
 

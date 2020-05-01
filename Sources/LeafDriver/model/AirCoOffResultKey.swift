@@ -1,12 +1,12 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
-//   let airCoCommandResultKey = try? newJSONDecoder().decode(airCoCommandResultKey.self, from: jsonData)
+//   let airCoOffResultKey = try? newJSONDecoder().decode(airCoOffResultKey.self, from: jsonData)
 
 import Foundation
 
-// MARK: - AirCoCommandResultKey
-struct AirCoCommandResultKey: Codable {
+// MARK: - AirCoOffResultKey
+struct AirCoOffResultKey: Codable {
     let status: Int
     let userId: String
     let vin: String

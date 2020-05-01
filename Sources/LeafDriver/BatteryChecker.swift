@@ -22,8 +22,8 @@ public class BatteryChecker:RestAPI<LeafCommand, LeafParameter>{
     var batteryUpdateResultKeyReceiver:Cancellable!
     var batteryUpdateStatusPublisher:AnyPublisher<BatteryUpdateStatus?, Error>!
     var batteryUpdateStatusReceiver:Cancellable!
-    var batteryUpdatePublisher:AnyPublisher<BatteryUpdate?, Error>!
-    var batteryUpdateReceiver:Cancellable!
+    var batteryUpdateResponsPublisher:AnyPublisher<BatteryUpdateRespons?, Error>!
+    var batteryUpdateResponsReceiver:Cancellable!
     
     var batteryStatus:BatteryStatus?{
         didSet{
@@ -60,30 +60,24 @@ public class BatteryChecker:RestAPI<LeafCommand, LeafParameter>{
     public func getBatteryStatus(){
         
         let command:LeafCommand = .batteryStatus
-        let thisMethod:LeafDriver.FunctionPointer = self.getBatteryStatus
-        let maxRetries = 2
+        let thisMethod = self.getBatteryStatus
         if mainDriver.connectionState == .loggedIn{
             
             batteryStatusPublisher = publish(command: command, parameters: parameters)
             
-            batteryStatusReceiver = batteryStatusPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                  receiveValue: {value in
-                                                                                    if let batteryStatus = value{
-                                                                                        self.batteryStatus = batteryStatus
-                                                                                        self.mainDriver.removeFromQueue(command: command)
-                                                                                        self.requestbatteryUpdate()
-                                                                                        self.mainDriver.connectionState = .loggedIn
-                                                                                    }else{
-                                                                                        self.mainDriver.addToQueue(command: command, function:
-                                                                                            thisMethod,maxRetries: maxRetries)
-                                                                                        self.mainDriver.connectionState = .failed
-                                                                                    }
-                                                                                    
-                                                                                    
+            batteryStatusReceiver = batteryStatusPublisher.sink(receiveCompletion: {completion in},
+                                                                receiveValue: {value in
+                                                                    if let batteryStatus = value{
+                                                                        self.batteryStatus = batteryStatus
+                                                                        self.requestbatteryUpdate()
+                                                                        self.mainDriver.connectionState = .loggedIn
+                                                                    }
+                                                                    
+                                                                    
             }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
         
     }
@@ -91,67 +85,55 @@ public class BatteryChecker:RestAPI<LeafCommand, LeafParameter>{
     private func requestbatteryUpdate(){
         
         let command:LeafCommand = .batteryUpdateRequest
-        let thisMethod:LeafDriver.FunctionPointer = self.requestbatteryUpdate
-        let maxRetries = 2
+        let thisMethod = self.requestbatteryUpdate
         
         if mainDriver.connectionState == .loggedIn{
             
             batteryUpdateResultKeyPublisher = publish(command: command, parameters: parameters)
             
-            batteryUpdateResultKeyReceiver = batteryUpdateResultKeyPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                                      receiveValue: {value in
-                                                                                                        if let batteryUpdateResultKey = value{
-                                                                                                            self.batteryUpdateResultKey = batteryUpdateResultKey
-                                                                                                            self.mainDriver.removeFromQueue(command: command)
-                                                                                                            self.checkCommandCompletion()
-                                                                                                            
-                                                                                                            self.mainDriver.connectionState = .loggedIn
-                                                                                                            
-                                                                                                        }else{
-                                                                                                            self.mainDriver.addToQueue(command: command, function:
-                                                                                                                thisMethod,maxRetries: maxRetries)
-                                                                                                            self.mainDriver.connectionState = .failed
-                                                                                                        }
-                                                                                                        
-                                                                                                        
+            batteryUpdateResultKeyReceiver = batteryUpdateResultKeyPublisher.sink(receiveCompletion: {completion in},
+                                                                                  receiveValue: {value in
+                                                                                    if let batteryUpdateResultKey = value{
+                                                                                        self.batteryUpdateResultKey = batteryUpdateResultKey
+                                                                                        self.mainDriver.commandQueue.remove(command: command)
+                                                                                        self.checkCommandCompletion()
+                                                                                        
+                                                                                        self.mainDriver.connectionState = .loggedIn
+                                                                                    }
+                                                                                    
+                                                                                    
             }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
         
     }
     
     private func checkCommandCompletion(){
         
-        let command:LeafCommand = .batteryUpdate
-        let thisMethod:LeafDriver.FunctionPointer = self.checkCommandCompletion
-        let maxRetries = 10
+        let command:LeafCommand = .BatteryUpdateRespons
+        let thisMethod = self.checkCommandCompletion
         
         if mainDriver.connectionState == .loggedIn{
             
-            batteryUpdateStatusPublisher = publish(command: command, parameters: parameters)
-            batteryUpdateStatusReceiver = batteryUpdateStatusPublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                                receiveValue: {value in
-                                                                                                    if let batteryUpdate = value{
-                                                                                                        if batteryUpdate.responseFlag == "1"{
-                                                                                                            self.mainDriver.removeFromQueue(command: command)
-                                                                                                            self.parseBatteryUpdate()
-                                                                                                        }else{
-                                                                                                            self.mainDriver.addToQueue(command: command, function:
-                                                                                                                thisMethod,maxRetries: maxRetries)
-                                                                                                        }
-                                                                                                        self.mainDriver.connectionState = .loggedIn
-                                                                                                    }else{
-                                                                                                        self.mainDriver.addToQueue(command: command, function:
-                                                                                                            thisMethod,maxRetries: maxRetries)
-                                                                                                        self.mainDriver.connectionState = .failed
-                                                                                                    }
-                                                                                                    
-            }
+            batteryUpdateStatusPublisher = publish(command: command, parameters: parameters, maxRetries: 10)
+            
+            batteryUpdateStatusReceiver = batteryUpdateStatusPublisher
+                .sink(receiveCompletion: {completion in},
+                      receiveValue: {value in
+                        if let BatteryUpdateRespons = value{
+                            if BatteryUpdateRespons.responseFlag == "1"{
+                                self.mainDriver.commandQueue.remove(command: command)
+                                self.parseBatteryUpdate()
+                            }
+                            self.mainDriver.connectionState = .loggedIn
+                        }
+                        
+                }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
         
     }
@@ -160,42 +142,35 @@ public class BatteryChecker:RestAPI<LeafCommand, LeafParameter>{
     
     private func parseBatteryUpdate(){
         
-        let command:LeafCommand = .batteryUpdate
-        let thisMethod:LeafDriver.FunctionPointer = self.parseBatteryUpdate
-        let maxRetries = 2
+        let command:LeafCommand = .BatteryUpdateRespons
+        let thisMethod = self.parseBatteryUpdate
         
         if mainDriver.connectionState == .loggedIn{
             
-            batteryUpdatePublisher = publish(command: command, parameters: parameters)
+            batteryUpdateResponsPublisher = publish(command: command, parameters: parameters)
             
-            batteryUpdateReceiver = batteryUpdatePublisher.assertNoFailure().sink(receiveCompletion: {completion in},
-                                                                                  receiveValue: {value in
-                                                                                    if let batteryUpdate = value{
-                                                                                        if batteryUpdate.responseFlag == "1"{
-                                                                                            self.mainDriver.removeFromQueue(command: command)
-                                                                                            self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOff
-                                                                                                = batteryUpdate.cruisingRangeAcOff
-                                                                                            self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOn
-                                                                                                = batteryUpdate.cruisingRangeAcOn
-                                                                                            self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW.hourRequiredToFull = batteryUpdate.timeRequiredToFull2006KW.hours
-                                                                                            self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW.minutesRequiredToFull = batteryUpdate.timeRequiredToFull2006KW.minutes
-                                                                                        }else{
-                                                                                            self.mainDriver.addToQueue(command: command, function:
-                                                                                                thisMethod,maxRetries: maxRetries)
-                                                                                        }
-                                                                                        self.mainDriver.connectionState = .loggedIn
-                                                                                        
-                                                                                    }else{
-                                                                                        self.mainDriver.addToQueue(command: command, function:
-                                                                                            thisMethod,maxRetries: maxRetries)
-                                                                                        self.mainDriver.connectionState = .failed
-                                                                                    }
-                                                                                    
-                                                                                    
-            }
+            batteryUpdateResponsReceiver = batteryUpdateResponsPublisher
+                .sink(receiveCompletion: {completion in},
+                      receiveValue: {value in
+                        if let BatteryUpdateRespons = value{
+                            if BatteryUpdateRespons.responseFlag == "1"{
+                                self.mainDriver.commandQueue.remove(command: command)
+                                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOff
+                                    = BatteryUpdateRespons.cruisingRangeAcOff
+                                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOn
+                                    = BatteryUpdateRespons.cruisingRangeAcOn
+                                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW.hourRequiredToFull = BatteryUpdateRespons.timeRequiredToFull2006KW.hours
+                                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW.minutesRequiredToFull = BatteryUpdateRespons.timeRequiredToFull2006KW.minutes
+                            }else{
+                                self.mainDriver.commandQueue.add(command: command, function: thisMethod)
+                                
+                            }
+                            self.mainDriver.connectionState = .loggedIn
+                        }
+                }
             )
         }else{
-            mainDriver.addToQueue(command: command, function: thisMethod)
+            mainDriver.commandQueue.add(command: command, function: thisMethod)
         }
         
     }

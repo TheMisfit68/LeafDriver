@@ -32,13 +32,7 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
             case .connected:
                 login()
             case .loggedIn:
-                if !commandQueue.isEmpty{
-                    commandQueue.forEach{ command, queueInfo in
-                        let funtionToCall = queueInfo.0
-                        funtionToCall()
-                        sleep(2)
-                    }
-                }
+                commandQueue.execute()
             case .failed:
                 connect()
             }
@@ -49,9 +43,8 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
     public var acController:ACController!
     public var charger:Charger!
     
-    public typealias FunctionPointer = ()->()
-    public typealias MaxRetryCount = Int
-    public var commandQueue:[LeafCommand:(FunctionPointer, MaxRetryCount)] = [:]
+    
+    public var commandQueue:CommandQueue = CommandQueue()
     
     let standardUserDefaults = UserDefaults.standard
     
@@ -142,7 +135,7 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
         let userSettings:[String:Any] = standardUserDefaults.dictionary(forKey: "LeafSettings") ?? [:]
         var userParameters:[LeafParameter:String] = [.initialAppStr: leafProtocol.initialAppString]
         
-        // if no userdefaults present yet, provide some for testing purposes
+        // If no userdefaults present yet, provide some for testing purposes
         userParameters[.userID] = userSettings["UserName"] as? String ?? "myUserName"
         userParameters[.clearPassword]  = userSettings["Password"] as? String ?? "myClearPassword"
         
@@ -158,25 +151,7 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
         self.connect()
     }
     
-    internal func addToQueue(command:LeafCommand, function:@escaping FunctionPointer, maxRetries:MaxRetryCount = 1){
-        
-        if commandQueue[command] == nil{
-            commandQueue[command] = (function, maxRetries)
-        }else if let currentEntry = commandQueue[command]{
-            let retriesLeft = currentEntry.1-1
-            commandQueue[command] = (function, retriesLeft)
-            if retriesLeft > 0{
-            }else{
-                removeFromQueue(command: command)
-            }
-        }
-    }
     
-    internal func removeFromQueue(command:LeafCommand){
-        if commandQueue[command] != nil{
-            commandQueue.removeValue(forKey:command)
-        }
-    }
     
     
     private func connect(){
@@ -210,3 +185,31 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
     
 }
 
+
+public struct CommandQueue{
+    
+    var queuedCommands:Dictionary<LeafCommand, ()->()>
+    
+    init(){
+        queuedCommands = [:]
+    }
+    
+    public mutating func add(command:LeafCommand, function:@escaping ()->()){
+        queuedCommands[command] = function
+    }
+    
+    public mutating func remove(command:LeafCommand){
+        queuedCommands.removeValue(forKey:command)
+    }
+    
+    public mutating func execute(){
+        if !queuedCommands.isEmpty{
+            queuedCommands.forEach{ command, function in
+                function()
+                queuedCommands.removeValue(forKey:command)
+                sleep(2)
+            }
+        }
+    }
+    
+}

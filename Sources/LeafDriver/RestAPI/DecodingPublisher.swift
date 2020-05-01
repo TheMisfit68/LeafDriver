@@ -13,44 +13,20 @@ import Combine
 @available(OSX 10.15, *)
 class DecodingPublisher{
     
-    // Publisher to decode received Json-String to a model object that conforms to Codable
-    class func Publisher<T: Decodable>(from request:URLRequest, using decoder:JSONDecoder = JSONDecoder()) -> AnyPublisher<T?, Error> {
+    // Publisher to decode received Json-String to a model object (that conforms to decodable)
+    class func Publisher<T: Decodable>(from request:URLRequest, using decoder:JSONDecoder = JSONDecoder(), maxRetries:Int = 2, retryDelay:UInt32 = 2) -> AnyPublisher<T, Error> {
         
         return URLSession.shared
             .dataTaskPublisher(for: request)
-            .tryMap { data, response -> T? in
-                do {
-                    guard let httpResponse = response as? HTTPURLResponse,
-                        httpResponse.statusCode == 200 else {
-                            return nil
-                    }
-                    return try decoder.decode(T.self, from: data) // Return an optional value
-                } catch{
-                    print("Decoding error: \(error).\n\(String(data: data, encoding:.utf8) ?? "") ")
-                    return nil
-                }
-                
-        }.receive(on: DispatchQueue.main)
+            .catch({ (error) -> URLSession.DataTaskPublisher in
+                sleep(retryDelay)
+                return URLSession.shared.dataTaskPublisher(for: request) // Just start completely over
+            })
+            .retry(maxRetries)
+            .map { data, _ in data}
+            .decode(type: T.self, decoder: decoder)
+            .subscribe(on: DispatchQueue.global())
             .eraseToAnyPublisher() // Make more generic
-        
-    }
-    
-    // Publisher to decode received Json-String to a directory of values
-    class func Publisher(from request:URLRequest) -> AnyPublisher<[String: Any]?, Error>{
-        
-        return URLSession.shared
-            .dataTaskPublisher(for: request)
-            .tryMap { result -> [String: Any]? in
-                do {
-                    return try JSONSerialization.jsonObject(with: result.data, options: []) as? [String : Any] //as? [String: Any]// Return an optional value
-                } catch{
-                    print("Decoding error: \(error).\n \(String(data: result.data, encoding:.utf8) ?? "") ")
-                    return nil
-                }
-                
-        }.receive(on: DispatchQueue.main)
-            .eraseToAnyPublisher() // Make more generic
-        
     }
     
 }
