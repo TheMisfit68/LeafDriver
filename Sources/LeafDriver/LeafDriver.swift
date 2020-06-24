@@ -3,8 +3,18 @@ import Combine
 import CryptoSwift
 import SiriDriver
 
+
+internal enum LeafDriverError:LocalizedError{
+    case noResponse
+}
+
 @available(OSX 10.15, *)
-public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
+public class LeafDriver{
+    
+    public typealias AnyMethod = ()->()
+    public var commandQueue: [LeafCommand:AnyMethod] = [:]
+
+    var restAPI:RestAPI<LeafCommand, LeafParameter>
     
     public let siriDriver = SiriDriver(language: .flemish)
     public enum ConnectionState:Int, Comparable{
@@ -12,7 +22,7 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
         case disconnected
         case connected
         case loggedIn
-        case failed
+        case unknown
         
         // Conform to comparable
         public static func < (a: ConnectionState, b: ConnectionState) -> Bool {
@@ -26,15 +36,16 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
         didSet{
             
             switch connectionState {
-                
+            case .unknown:
+                connect()
             case .disconnected:
                 connect()
             case .connected:
                 login()
             case .loggedIn:
-                commandQueue.execute()
-            case .failed:
-                connect()
+                commandQueue.forEach{ command, associatedMethod in
+                    associatedMethod()
+                }
             }
         }
     }
@@ -43,8 +54,6 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
     public var acController:ACController!
     public var charger:Charger!
     
-    
-    public var commandQueue:CommandQueue = CommandQueue()
     
     let standardUserDefaults = UserDefaults.standard
     
@@ -59,8 +68,8 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
     
     var parameters:[LeafParameter:String]{
         
+        var currentParameters:[LeafParameter:String] = [:]
         var currentParameter:LeafParameter
-        var currentParameters:[LeafParameter:String] = baseParameters
         
         func encryptUsingBlowfish(password:String, key:String)->String{
             
@@ -80,9 +89,9 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
             currentParameters[currentParameter] = currentValue
         }
         
-        // Clear password
+        // Password
         currentParameter = LeafParameter.password
-        if let clearPassword = currentParameters[.clearPassword], let encryptionkey = connectionInfo?.baseprm{
+        if let clearPassword = restAPI.baseParameters[.clearPassword], let encryptionkey = connectionInfo?.baseprm{
             let currentValue = encryptUsingBlowfish(password: clearPassword, key:encryptionkey)
             currentParameters[currentParameter] = currentValue
         }
@@ -143,7 +152,7 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
         userParameters[.language] = userSettings["Language"] as? String ?? Language.flemish.rawValue
         userParameters[.timeZone] = userSettings["TimeZone"] as? String ?? TimeZone.brussels.rawValue
         
-        super.init(baseURL: leafProtocol.baseURL, endpointParameters: leafProtocol.requiredCommandParameters, baseParameters:userParameters)
+        restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: leafProtocol.baseURL, endpointParameters: leafProtocol.requiredCommandParameters,baseParameters: userParameters)
         
         batteryChecker = BatteryChecker(mainDriver: self)
         acController = ACController(mainDriver: self)
@@ -152,64 +161,79 @@ public class LeafDriver:RestAPI<LeafCommand, LeafParameter>{
     }
     
     
-    
-    
     private func connect(){
+                
+        let thisCommand:LeafCommand = .connect
+        let thisMethod = connect
         
-        connectionPublisher = publish(command: .connect, parameters: parameters)
+        connectionPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
         
-        connectionReceiver = connectionPublisher.sink(receiveCompletion: {completion in},
-                                                      receiveValue: {value in
-                                                        if let connectionResult = value{
-                                                            self.connectionInfo = connectionResult
-                                                            self.connectionState = .connected
-                                                        }
-        }
+        connectionReceiver = connectionPublisher
+            .sink(receiveCompletion: {completion in
+                self.handle(completion: completion, of: thisCommand, recalOnFailure: thisMethod, callwhenSucceeded: {})
+            },receiveValue: {value in
+                if let connectionResult = value{
+                    self.connectionInfo = connectionResult
+                    self.connectionState = .connected
+                }
+            }
         )
     }
+    
     
     private func login(){
         
-        logginPublisher = publish(command: .login, parameters: parameters)
+        let thisCommand:LeafCommand = .login
+        let thisMethod = login
         
-        loginReceiver = logginPublisher.sink(receiveCompletion: {completion in},
-                                             receiveValue: {value in
-                                                if let loginResult = value{
-                                                    self.session = loginResult
-                                                    self.connectionState = .loggedIn
-                                                }
-        }
-        )
+        logginPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
         
-    }
-    
-}
-
-
-public struct CommandQueue{
-    
-    var queuedCommands:Dictionary<LeafCommand, ()->()>
-    
-    init(){
-        queuedCommands = [:]
-    }
-    
-    public mutating func add(command:LeafCommand, function:@escaping ()->()){
-        queuedCommands[command] = function
-    }
-    
-    public mutating func remove(command:LeafCommand){
-        queuedCommands.removeValue(forKey:command)
-    }
-    
-    public mutating func execute(){
-        if !queuedCommands.isEmpty{
-            queuedCommands.forEach{ command, function in
-                function()
-                queuedCommands.removeValue(forKey:command)
-                sleep(2)
+        loginReceiver = logginPublisher
+            .sink(receiveCompletion: {completion in
+                self.handle(completion: completion, of: thisCommand, recalOnFailure: thisMethod, callwhenSucceeded: {})
+            },receiveValue: {value in
+                if let loginResult = value{
+                    self.session = loginResult
+                }
             }
+        )
+    }
+    
+    internal func handle(completion:Subscribers.Completion<Error>,of command:LeafCommand, recalOnFailure:@escaping AnyMethod, callwhenSucceeded:@escaping AnyMethod){
+        
+        switch completion{
+        case .finished:
+            
+            commandQueue.removeValue(forKey: command)
+            commandQueue[command] = callwhenSucceeded
+            
+            if command == .connect {
+                connectionState = max(connectionState, .connected)
+            }else{
+                connectionState = max(connectionState, .loggedIn)
+            }
+            
+        case .failure(let error):
+            
+            commandQueue[command] = recalOnFailure
+            
+            switch error{
+            case URLError.notConnectedToInternet:
+                connectionState = min(connectionState, .disconnected)
+            case DecodingError.keyNotFound:
+                if command == .connect {
+                    connectionState = min(connectionState, .disconnected)
+                }else if command == .login{
+                    connectionState = min(connectionState, .connected)
+                }else{
+                    connectionState = min(connectionState, .loggedIn)
+                }
+            default:
+                connectionState = .unknown
+            }
+            
         }
     }
+    
     
 }

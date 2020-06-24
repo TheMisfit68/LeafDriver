@@ -18,15 +18,15 @@ class DecodingPublisher{
         
         return URLSession.shared
             .dataTaskPublisher(for: request)
-            .catch({ (error) -> URLSession.DataTaskPublisher in
+            .tryCatch({error -> URLSession.DataTaskPublisher in
                 sleep(retryDelay)
-                return URLSession.shared.dataTaskPublisher(for: request) // Just start completely over
+                return URLSession.shared.dataTaskPublisher(for: request)
             })
             .retry(maxRetries)
-            .map { data, _ in data}
+            .tryMap{ data, _ in data}
             .decode(type: T.self, decoder: decoder)
             .subscribe(on: DispatchQueue.global())
             .eraseToAnyPublisher() // Make more generic
     }
-    
 }
+

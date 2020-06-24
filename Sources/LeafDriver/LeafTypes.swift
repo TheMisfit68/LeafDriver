@@ -5,20 +5,6 @@
 //  Created by Jan Verrept on 24/03/2020.
 //
 
-public protocol StringRepresentable { var stringValue:String{get} }
-
-public extension StringRepresentable where Self:RawRepresentable, Self.RawValue == String{
-     var stringValue:String{
-        return self.rawValue as String
-    }
-}
-public extension StringRepresentable where Self:StringProtocol {
-     var stringValue:String{
-        return String(describing: self)
-    }
-}
-public protocol StringRepresentableEnum: StringRepresentable & RawRepresentable & Hashable {}
-
 public enum LeafCommand:String, StringRepresentableEnum{
     
     case connect = "InitialApp_v2.php"

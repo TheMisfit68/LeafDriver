@@ -9,18 +9,28 @@ import Foundation
 import Combine
 
 @available(OSX 10.15, *)
-public class Charger:RestAPI<LeafCommand, LeafParameter>{
+public class Charger{
     
-    unowned let  mainDriver: LeafDriver?
+    unowned let mainDriver: LeafDriver
+
+    var restAPI:RestAPI<LeafCommand, LeafParameter>
 
     public enum ChargingState{
         case off
         case on
     }
     
+    var parameters:[LeafParameter:String]{
+        
+        var currentParameters:[LeafParameter:String] = mainDriver.parameters
+        var currentParameter:LeafParameter
+        
+        return currentParameters
+    }
+    
     init(mainDriver:LeafDriver){
           self.mainDriver = mainDriver
-          super .init(baseURL: mainDriver.baseURL, endpointParameters: mainDriver.endpointParameters)
+          restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
     }
     
     public func getChargingState(){
