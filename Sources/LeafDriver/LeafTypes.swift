@@ -5,6 +5,8 @@
 //  Created by Jan Verrept on 24/03/2020.
 //
 
+import JVCocoa
+
 public enum LeafCommand:String, StringRepresentableEnum{
     
     case connect = "InitialApp_v2.php"

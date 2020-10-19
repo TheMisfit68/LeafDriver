@@ -14,13 +14,19 @@ let package = Package(
     dependencies: [
         // Dependencies declare other packages that this package depends on.
         .package(name: "CryptoSwift", url: "https://github.com/krzyzanowskim/CryptoSwift.git", .upToNextMajor(from:"1.2.0")),
-        .package(name: "SiriDriver", url: "https://github.com/TheMisfit68/SiriDriver.git", .branch("master"))
+        .package(name: "SiriDriver", url: "https://github.com/TheMisfit68/SiriDriver.git", .branch("master")),
+        .package(name: "JVCocoa", url: "https://github.com/TheMisfit68/JVCocoa.git",  .branch("master"))
     ],
     targets: [
         // Targets are the basic building blocks of a package. A target can define a module or a test suite.
         // Targets can depend on other targets in this package, and on products in packages which this package depends on.
         .target(
             name: "LeafDriver",
-            dependencies: ["CryptoSwift", "SiriDriver"])
+            dependencies: [
+                "CryptoSwift",
+                "SiriDriver",
+                "JVCocoa"
+            ]
+        )
     ]
 )

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import JVCocoa
 import Combine
 import SiriDriver
 

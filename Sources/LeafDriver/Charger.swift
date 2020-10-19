@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import JVCocoa
 
 @available(OSX 10.15, *)
 public class Charger{

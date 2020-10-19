@@ -5,6 +5,7 @@
 //  Created by Jan Verrept on 25/04/2020.
 //
 import Foundation
+import JVCocoa
 import Combine
 import SiriDriver
 
