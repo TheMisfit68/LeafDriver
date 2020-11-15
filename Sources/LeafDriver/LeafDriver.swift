@@ -1,3 +1,11 @@
+//
+//  LeafDriver.swift
+//
+//
+//  Created by Jan Verrept on 26/03/2020.
+//
+
+
 import Foundation
 import JVCocoa
 import Combine
@@ -14,7 +22,7 @@ public class LeafDriver{
     
     public typealias AnyMethod = ()->()
     public var commandQueue: [LeafCommand:AnyMethod] = [:]
-
+    
     var restAPI:RestAPI<LeafCommand, LeafParameter>
     
     public let siriDriver = SiriDriver(language: .flemish)
@@ -121,7 +129,7 @@ public class LeafDriver{
         // SessionID
         currentParameter = LeafParameter.customSessionID
         if let currentValue = session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.customSessionid{
-            currentParameters[currentParameter] = HTTPForm<LeafParameter>.Encode(currentValue)
+            currentParameters[currentParameter] = currentValue
         }
         
         // Vehicle
@@ -134,7 +142,7 @@ public class LeafDriver{
         // DCMID
         currentParameter = LeafParameter.dcmid
         if let currentValue = session?.vehicle.profile.dcmId{
-            currentParameters[currentParameter] = HTTPForm<LeafParameter>.Encode(currentValue)
+            currentParameters[currentParameter] = currentValue
         }
         
         return currentParameters
@@ -163,12 +171,11 @@ public class LeafDriver{
     
     
     private func connect(){
-                
+        
         let thisCommand:LeafCommand = .connect
         let thisMethod = connect
         
-        connectionPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
-        
+        connectionPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters, maxRetries: 5)
         connectionReceiver = connectionPublisher
             .sink(receiveCompletion: {completion in
                 self.handle(completion: completion, of: thisCommand, recalOnFailure: thisMethod, callwhenSucceeded: {})
@@ -178,7 +185,7 @@ public class LeafDriver{
                     self.connectionState = .connected
                 }
             }
-        )
+            )
     }
     
     
@@ -187,7 +194,7 @@ public class LeafDriver{
         let thisCommand:LeafCommand = .login
         let thisMethod = login
         
-        logginPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+        logginPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters, retryDelay: 5)
         
         loginReceiver = logginPublisher
             .sink(receiveCompletion: {completion in
@@ -197,7 +204,7 @@ public class LeafDriver{
                     self.session = loginResult
                 }
             }
-        )
+            )
     }
     
     internal func handle(completion:Subscribers.Completion<Error>,of command:LeafCommand, recalOnFailure:@escaping AnyMethod, callwhenSucceeded:@escaping AnyMethod){

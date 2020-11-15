@@ -76,7 +76,7 @@ public class ACController{
         let thisMethod = getAirCoStatus
         if mainDriver.connectionState == .loggedIn{
             
-            airCoStatusPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            airCoStatusPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
             
             airCoStatusReceiver = airCoStatusPublisher
                 .sink(receiveCompletion: {completion in
@@ -108,7 +108,7 @@ public class ACController{
         
         if mainDriver.connectionState == .loggedIn{
             
-            airCoOnResultKeyPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            airCoOnResultKeyPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
             
             airCoOnResultKeyReceiver = airCoOnResultKeyPublisher
                 .sink(receiveCompletion: {completion in
@@ -130,7 +130,7 @@ public class ACController{
         
         if mainDriver.connectionState == .loggedIn{
             
-            airCoOffResultKeyPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            airCoOffResultKeyPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
             
             airCoOffResultKeyReceiver = airCoOffResultKeyPublisher
                 .sink(receiveCompletion: {completion in
@@ -151,7 +151,7 @@ public class ACController{
         
         if mainDriver.connectionState == .loggedIn{
             
-            airCoOnStatusPublisher = restAPI.publish(command: thisCommand, parameters: parameters, maxRetries: 10)
+            airCoOnStatusPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters, maxRetries: 10)
             airCoOnStatusReceiver = airCoOnStatusPublisher
                 .sink(receiveCompletion: {completion in
                     self.mainDriver.handle(completion: completion, of: thisCommand, recalOnFailure: thisMethod, callwhenSucceeded: {})
@@ -175,7 +175,7 @@ public class ACController{
         
         if mainDriver.connectionState == .loggedIn{
             
-            airCoOnResponsPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            airCoOnResponsPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
             
             airCoOnResponsReceiver = airCoOnResponsPublisher
                 .sink(receiveCompletion: {completion in
