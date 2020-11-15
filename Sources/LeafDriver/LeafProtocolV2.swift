@@ -19,7 +19,7 @@ public struct LeafProtocolV2:LeafProtocol{
         
         .connect : [.initialAppStr],
         .login :   [.initialAppStr, .userID, .password, .regionCode, .timeZone, .language],
-        
+
         .batteryStatus : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
         .batteryUpdateRequest : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
         .BatteryUpdateRespons : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid, .resultKey],

@@ -65,7 +65,7 @@ public class BatteryChecker{
         let thisMethod = self.getBatteryStatus
         if mainDriver.connectionState == .loggedIn{
             
-            batteryStatusPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            batteryStatusPublisher = restAPI.publish(method:.POST,command: thisCommand, parameters: parameters)
             
             batteryStatusReceiver = batteryStatusPublisher
                 .sink(receiveCompletion: {completion in
@@ -89,7 +89,7 @@ public class BatteryChecker{
         
         if mainDriver.connectionState == .loggedIn{
             
-            batteryUpdateResultKeyPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            batteryUpdateResultKeyPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
             
             batteryUpdateResultKeyReceiver = batteryUpdateResultKeyPublisher.sink(receiveCompletion: {completion in
                 self.mainDriver.handle(completion: completion, of: thisCommand, recalOnFailure: thisMethod, callwhenSucceeded: self.checkCommandCompletion)
@@ -112,7 +112,7 @@ public class BatteryChecker{
         
         if mainDriver.connectionState == .loggedIn{
             
-            batteryUpdateStatusPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            batteryUpdateStatusPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
             
             batteryUpdateStatusReceiver = batteryUpdateStatusPublisher
                 .tryMap( { value in
@@ -139,7 +139,7 @@ public class BatteryChecker{
         
         if mainDriver.connectionState == .loggedIn{
             
-            batteryUpdateResponsPublisher = restAPI.publish(command: thisCommand, parameters: parameters)
+            batteryUpdateResponsPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
             
             batteryUpdateResponsReceiver = batteryUpdateResponsPublisher
                 .sink(receiveCompletion: {completion in
