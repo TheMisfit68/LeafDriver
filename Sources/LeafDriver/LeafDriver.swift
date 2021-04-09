@@ -12,7 +12,6 @@ import Combine
 import CryptoSwift
 import SiriDriver
 
-
 internal enum LeafDriverError:LocalizedError{
     case noResponse
 }
@@ -23,7 +22,7 @@ public class LeafDriver{
     public typealias AnyMethod = ()->()
     public var commandQueue: [LeafCommand:AnyMethod] = [:]
     
-    var restAPI:RestAPI<LeafCommand, LeafParameter>
+    var restAPI:RestAPI<LeafCommand, LeafParameter>!
     
     public let siriDriver = SiriDriver(language: .flemish)
     public enum ConnectionState:Int, Comparable{
@@ -62,9 +61,6 @@ public class LeafDriver{
     public var batteryChecker:BatteryChecker!
     public var acController:ACController!
     public var charger:Charger!
-    
-    
-    let standardUserDefaults = UserDefaults.standard
     
     var connectionPublisher:AnyPublisher<ConnectionInfo?, Error>!
     var connectionReceiver:Cancellable!
@@ -149,24 +145,17 @@ public class LeafDriver{
     }
     
     public init(leafProtocol:LeafProtocol){
-        
-        let userSettings:[String:Any] = standardUserDefaults.dictionary(forKey: "LeafSettings") ?? [:]
-        var userParameters:[LeafParameter:String] = [.initialAppStr: leafProtocol.initialAppString]
-        
-        // If no userdefaults present yet, provide some for testing purposes
-        userParameters[.userID] = userSettings["UserName"] as? String ?? "myUserName"
-        userParameters[.clearPassword]  = userSettings["Password"] as? String ?? "myClearPassword"
-        
-        userParameters[.regionCode] = userSettings["RegionCode"] as? String ?? Region.europe.rawValue
-        userParameters[.language] = userSettings["Language"] as? String ?? Language.flemish.rawValue
-        userParameters[.timeZone] = userSettings["TimeZone"] as? String ?? TimeZone.brussels.rawValue
-        
+		
+		var userParameters:[LeafParameter:String] = [.initialAppStr: leafProtocol.initialAppString]
+		userParameters = userParameters.merging(preferences, uniquingKeysWith: { (current, _) in current } )
+		
         restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: leafProtocol.baseURL, endpointParameters: leafProtocol.requiredCommandParameters,baseParameters: userParameters)
         
         batteryChecker = BatteryChecker(mainDriver: self)
         acController = ACController(mainDriver: self)
         charger = Charger(mainDriver: self)
         self.connect()
+		
     }
     
     
