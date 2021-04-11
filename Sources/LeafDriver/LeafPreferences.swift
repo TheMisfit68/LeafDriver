@@ -27,11 +27,11 @@ extension LeafDriver:PreferenceBased {
 		
 		var preferences:[LeafParameter:String] = [:]
 		
-		preferences[.userID] = getPreference(forKey: .leafSettings, secondaryKey: .username) ?? "myUserName"
-		preferences[.clearPassword] = getPreference(forKey: .leafSettings, secondaryKey: .password) ?? "myClearPassword"
-		preferences[.regionCode] = getPreference(forKey: .leafSettings, secondaryKey: .regionCode) ?? Region.europe.rawValue
-		preferences[.language] = getPreference(forKey: .leafSettings, secondaryKey: .language) ?? Language.flemish.rawValue
-		preferences[.timeZone] = getPreference(forKey: .leafSettings, secondaryKey: .timeZone) ?? TimeZone.brussels.rawValue
+		preferences[.userID] = getPreference(forKeyPath: .leafSettings, .username) ?? "myUserName"
+		preferences[.clearPassword] = getPreference(forKeyPath: .leafSettings, .password) ?? "myClearPassword"
+		preferences[.regionCode] = getPreference(forKeyPath: .leafSettings, .regionCode) ?? Region.europe.rawValue
+		preferences[.language] = getPreference(forKeyPath: .leafSettings, .language) ?? Language.flemish.rawValue
+		preferences[.timeZone] = getPreference(forKeyPath: .leafSettings, .timeZone) ?? TimeZone.brussels.rawValue
 		
 		return preferences
 	}
