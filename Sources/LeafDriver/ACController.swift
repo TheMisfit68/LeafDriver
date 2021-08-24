@@ -184,7 +184,7 @@ public class ACController{
                       receiveValue: {value in
                         if let airCoUpdate = value{
                             if airCoUpdate.responseFlag == "1"{
-                                print("airCoUpdate \(String(describing: value))")
+								Debugger.shared.log(debugLevel:.Native(logType: .info), "airCoUpdate \(String(describing: value))")
 
                                 //TODO: - set aircoUpdate=>aircostatus?
                                 //                                                                                            self.airCoStatus.
