@@ -28,8 +28,8 @@ public enum LeafParameter:String, StringRepresentableEnum{
     
     case initialAppStr = "initial_app_str"
     case userID = "UserId"
-    case clearPassword 
-    case password = "Password"
+    case clearPassWord
+    case encryptedPassWord = "Password"
     
     case customSessionID = "custom_sessionid"
     case regionCode = "RegionCode"

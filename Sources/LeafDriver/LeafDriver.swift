@@ -16,8 +16,14 @@ internal enum LeafDriverError:LocalizedError{
     case noResponse
 }
 
+extension LeafDriver:PreferenceBased{
+	
+	public var preferencesRootKey:String{ "LeafSettings" }
+}
+
+
 @available(OSX 10.15, *)
-public class LeafDriver{
+public class LeafDriver:Secuarable{
     
     public typealias AnyMethod = ()->()
     public var commandQueue: [LeafCommand:AnyMethod] = [:]
@@ -95,9 +101,9 @@ public class LeafDriver{
         }
         
         // Password
-        currentParameter = LeafParameter.password
-        if let clearPassword = restAPI.baseParameters[.clearPassword], let encryptionkey = connectionInfo?.baseprm{
-            let currentValue = encryptUsingBlowfish(password: clearPassword, key:encryptionkey)
+        currentParameter = LeafParameter.encryptedPassWord
+        if let clearPassWord = restAPI.baseParameters[.clearPassWord], let encryptionkey = connectionInfo?.baseprm{
+            let currentValue = encryptUsingBlowfish(password: clearPassWord, key:encryptionkey)
             currentParameters[currentParameter] = currentValue
         }
         
@@ -146,9 +152,19 @@ public class LeafDriver{
     
     public init(leafProtocol:LeafProtocol){
 		
-		var userParameters:[LeafParameter:String] = [.initialAppStr: leafProtocol.initialAppString]
-		userParameters = userParameters.merging(preferences, uniquingKeysWith: { (current, _) in current } )
-		
+		// Read the credentials
+		let userName:String = preferences?[keyPath:"username"] as? String ?? "myUserName"
+		let clearPassWord:String = passwordFromKeyChain(accountName: userName) ?? "myPassWord"
+			
+		// Read te parameters from the Preferences…
+		let userParameters:[LeafParameter:String] = [
+			.initialAppStr: leafProtocol.initialAppString,
+			.userID: userName,
+			.clearPassWord: clearPassWord,
+			.regionCode: preferences?[keyPath:"regionCode"] as? String ?? Region.europe.rawValue,
+			.language: preferences?[keyPath:"language"] as? String ?? Language.flemish.rawValue,
+			.timeZone: preferences?[keyPath:"timeZone"] as? String ?? TimeZone.brussels.rawValue
+		]
         restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: leafProtocol.baseURL, endpointParameters: leafProtocol.requiredCommandParameters,baseParameters: userParameters)
         
         batteryChecker = BatteryChecker(mainDriver: self)

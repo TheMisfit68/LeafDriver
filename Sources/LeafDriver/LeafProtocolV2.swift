@@ -18,7 +18,7 @@ public struct LeafProtocolV2:LeafProtocol{
     public let requiredCommandParameters: [LeafCommand : [LeafParameter]] = [
         
         .connect : [.initialAppStr],
-        .login :   [.initialAppStr, .userID, .password, .regionCode, .timeZone, .language],
+        .login :   [.initialAppStr, .userID, .encryptedPassWord, .regionCode, .timeZone, .language],
 
         .batteryStatus : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
         .batteryUpdateRequest : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
