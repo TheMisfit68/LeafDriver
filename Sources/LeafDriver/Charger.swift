@@ -14,7 +14,7 @@ public class Charger{
     
     unowned let mainDriver: LeafDriver
 
-    var restAPI:RestAPI<LeafCommand, LeafParameter>
+	var restAPI:LeafDriver.LeafAPI
 
     public enum ChargingState{
         case off
