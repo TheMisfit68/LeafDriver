@@ -17,7 +17,7 @@ extension LeafDriver:PreferenceBased{
 
 
 @available(OSX 10.15, *)
-public class LeafDriver:Secuarable{
+public class LeafDriver:Securable{
 	
 	internal enum Error:LocalizedError{
 		case noResponse
