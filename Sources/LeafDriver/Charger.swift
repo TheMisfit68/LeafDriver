@@ -9,7 +9,7 @@ import Foundation
 import Combine
 import JVCocoa
 
-@available(OSX 10.15, *)
+@available(OSX 12.0, *)
 public class Charger{
     
     unowned let mainDriver: LeafDriver
