@@ -8,35 +8,37 @@
 import Foundation
 import JVCocoa
 import Combine
-import SiriDriver
+import OSLog
 
 @available(OSX 12.0, *)
 public class BatteryChecker{
     
     unowned let mainDriver: LeafDriver
-    unowned let siriDriver: SiriDriver
     
     var restAPI:LeafDriver.LeafAPI
     
-    var batteryStatusPublisher:AnyPublisher<BatteryStatus?, Error>!
-    var batteryStatusReceiver:Cancellable!
+    var batteryStatus:BatteryStatus?
     
-    var batteryUpdateResultKeyPublisher:AnyPublisher<BatteryUpdateResultKey?, Error>!
-    var batteryUpdateResultKeyReceiver:Cancellable!
-    var batteryUpdateStatusPublisher:AnyPublisher<BatteryUpdateStatus?, Error>!
-    var batteryUpdateStatusReceiver:Cancellable!
-    var batteryUpdateResponsPublisher:AnyPublisher<BatteryUpdateRespons?, Error>!
-    var batteryUpdateResponsReceiver:Cancellable!
+    public var rangeRemaining:Int?{
+        guard let rangeInMeters = Int(batteryStatus?.batteryStatusRecords.cruisingRangeAcOff ?? "") else {return nil}
+        return rangeInMeters/1000
+    }
+    public var percentageRemaining:Int?{
+        guard let percentage = Int(batteryStatus?.batteryStatusRecords.batteryStatus.soc.value ?? "") else {return nil}
+        return percentage
+    }
     
-    var batteryStatus:BatteryStatus?{
+    var batteryUpdateResultKey:BatteryUpdateResultKey?
+    var batteryUpdateRespons:BatteryUpdateRespons?{
         didSet{
-            if let stats = batteryStatus?.batteryStatusRecords, let rangeInMeters = Int(stats.cruisingRangeAcOff){
-                let percentage = stats.batteryStatus.soc.value
-                siriDriver.speak(text: "Nog \(percentage) percent of \(rangeInMeters/1000) kilometer")
+            if batteryUpdateRespons?.responseFlag == "1"{
+                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOff = batteryUpdateRespons!.cruisingRangeAcOff
+                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOn  = batteryUpdateRespons!.cruisingRangeAcOn
+                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW?.hourRequiredToFull = batteryUpdateRespons!.timeRequiredToFull2006KW.hours
+                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW?.minutesRequiredToFull = batteryUpdateRespons!.timeRequiredToFull2006KW.minutes
             }
         }
     }
-    var batteryUpdateResultKey:BatteryUpdateResultKey?
     
     var parameters:[LeafParameter:String]{
         
@@ -54,7 +56,6 @@ public class BatteryChecker{
     
     init(mainDriver:LeafDriver){
         self.mainDriver = mainDriver
-        self.siriDriver = mainDriver.siriDriver
         restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
     }
     
@@ -72,7 +73,7 @@ public class BatteryChecker{
                 self.batteryStatus = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
                 
                 mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.commandQueue[thisCommand] = self.requestbatteryUpdate
+                mainDriver.commandQueue[.batteryUpdateRequest] = self.sendBatteryUpdateRequest
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
             } catch LeafDriver.LeafAPI.Error.statusError{
@@ -87,10 +88,10 @@ public class BatteryChecker{
     }
     
     
-    private func requestbatteryUpdate(){
+    private func sendBatteryUpdateRequest(){
         
         let thisCommand:LeafCommand = .batteryUpdateRequest
-        let thisMethod = self.requestbatteryUpdate
+        let thisMethod = self.sendBatteryUpdateRequest
         
         guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
         
@@ -99,7 +100,7 @@ public class BatteryChecker{
                 self.batteryUpdateResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
                 
                 mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.commandQueue[thisCommand] = self.checkCommandCompletion
+                mainDriver.commandQueue[.batteryUpdateRespons] = self.checkBatteryUpdateRespons
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
             } catch LeafDriver.LeafAPI.Error.statusError{
@@ -114,52 +115,27 @@ public class BatteryChecker{
         
     }
     
-    private func checkCommandCompletion(){
-        
+    private func checkBatteryUpdateRespons(){
+                
         let thisCommand:LeafCommand = .batteryUpdateRespons
-        let thisMethod = self.checkCommandCompletion
-        
+        let thisMethod = self.checkBatteryUpdateRespons
+        let decoder:JSONDecoder = newJSONDecoder()
+
         guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
         
         
         Task{
             do {
-                let batteryUpdateRespons:BatteryUpdateRespons? = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
-                guard batteryUpdateRespons?.responseFlag == "1" else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
+                guard let data = try? await restAPI.post(command: thisCommand, parameters: parameters) else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
+                let dataString = String(decoding: data, as: UTF8.self)
+                let logger = Logger(subsystem: "be.oneclick.Leafdriver", category: "BatteryChecker")
+                logger.info("↩️\tReceived data for \(thisCommand.stringValue, privacy: .public):\n\(dataString, privacy: .public)")
                 
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.commandQueue[thisCommand] = self.parseBatteryUpdate
-                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
+                guard let batteryUpdateStatus = try? decoder.decode(BatteryUpdateStatus.self, from: data) else { throw LeafDriver.LeafAPI.Error.decodingError }
+                guard (batteryUpdateStatus.responseFlag == "1") else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
+                guard let batteryUpdateRespons = try? decoder.decode(BatteryUpdateRespons.self, from: data) else { throw LeafDriver.LeafAPI.Error.decodingError}
                 
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
-        }
-        
-    }
-    
-    
-    private func parseBatteryUpdate(){
-        
-        let thisCommand:LeafCommand = .batteryUpdateRespons
-        let thisMethod = self.parseBatteryUpdate
-        
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
-        
-        
-        Task{
-            do {
-                let batteryUpdateRespons:BatteryUpdateRespons? = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
-                guard batteryUpdateRespons?.responseFlag == "1" else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
-                
-                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOff = batteryUpdateRespons!.cruisingRangeAcOff
-                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOn  = batteryUpdateRespons!.cruisingRangeAcOn
-                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW.hourRequiredToFull = batteryUpdateRespons!.timeRequiredToFull2006KW.hours
-                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW.minutesRequiredToFull = batteryUpdateRespons!.timeRequiredToFull2006KW.minutes
+                self.batteryUpdateRespons = batteryUpdateRespons
                 
                 mainDriver.commandQueue.removeValue(forKey: thisCommand)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
@@ -171,6 +147,7 @@ public class BatteryChecker{
                 mainDriver.commandQueue[thisCommand] = thisMethod
                 mainDriver.connectionState = min(mainDriver.connectionState, .connected)
             }
+            
         }
         
     }

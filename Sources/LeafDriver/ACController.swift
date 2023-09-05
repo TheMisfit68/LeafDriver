@@ -7,32 +7,13 @@
 import Foundation
 import JVCocoa
 import Combine
-import SiriDriver
 
 @available(OSX 12.0, *)
 public class ACController{
     
     unowned let mainDriver: LeafDriver
-    unowned let siriDriver: SiriDriver
     
     var restAPI:LeafDriver.LeafAPI
-    
-    var airCoStatusPublisher:AnyPublisher<AirCoStatus?, Error>!
-    var airCoStatusReceiver:Cancellable!
-    
-    var airCoOnResultKeyPublisher:AnyPublisher<AirCoOnResultKey?, Error>!
-    var airCoOnResultKeyReceiver:Cancellable!
-    var airCoOnStatusPublisher:AnyPublisher<AirCoOnStatus?, Error>!
-    var airCoOnStatusReceiver:Cancellable!
-    var airCoOnResponsPublisher:AnyPublisher<AirCoOnRespons?, Error>!
-    var airCoOnResponsReceiver:Cancellable!
-    
-    var airCoOffResultKeyPublisher:AnyPublisher<AirCoOffResultKey?, Error>!
-    var airCoOffResultKeyReceiver:Cancellable!
-    var airCoOffStatusPublisher:AnyPublisher<AirCoOffStatus?, Error>!
-    var airCoOffStatusReceiver:Cancellable!
-    var airCoOffResponsPublisher:AnyPublisher<AirCoOffRespons?, Error>!
-    var airCoOffResponsReceiver:Cancellable!
     
     public enum airCoState{
         case off
@@ -65,7 +46,6 @@ public class ACController{
     
     init(mainDriver:LeafDriver){
         self.mainDriver = mainDriver
-        self.siriDriver = mainDriver.siriDriver
         restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
     }
     

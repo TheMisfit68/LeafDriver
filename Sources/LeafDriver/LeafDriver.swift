@@ -36,7 +36,7 @@ open class LeafDriver:Securable{
     var logginPublisher:AnyPublisher<Session?, Swift.Error>!
     var loginReceiver:Cancellable!
     
-    public let siriDriver = SiriDriver(language: .flemish)
+    public let siriDriver = SiriDriver()
     public enum ConnectionState:Int, Comparable{
         
         case disconnected
@@ -63,9 +63,7 @@ open class LeafDriver:Securable{
             case .connected:
                 login()
             case .loggedIn:
-                commandQueue.forEach{ command, associatedMethod in
-                    print("🐞\t decueing \(command)") // TODO: - remove temp print statement
-                    
+                commandQueue.forEach{ command, associatedMethod in                    
                     associatedMethod()
                 }
             }

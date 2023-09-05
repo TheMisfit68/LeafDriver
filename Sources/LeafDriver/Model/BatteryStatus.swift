@@ -26,9 +26,9 @@ struct BatteryStatusRecords: Codable {
     let pluginState: String
     var cruisingRangeAcOn: String
     var cruisingRangeAcOff: String
-    let timeRequiredToFull: TimeRequiredToFull
-    let timeRequiredToFull200: TimeRequiredToFull
-    var timeRequiredToFull2006KW: TimeRequiredToFull
+    let timeRequiredToFull: TimeRequiredToFull?
+    let timeRequiredToFull200: TimeRequiredToFull?
+    var timeRequiredToFull2006KW: TimeRequiredToFull?
     let notificationDateAndTime: String
     let targetDate: String
 
