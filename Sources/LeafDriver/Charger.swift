@@ -13,33 +13,45 @@ import JVCocoa
 public class Charger{
     
     unowned let mainDriver: LeafDriver
-
-	var restAPI:LeafDriver.LeafAPI
-
-    public enum ChargingState{
-        case off
-        case on
-    }
+    
+    var restAPI:LeafDriver.LeafAPI
+    
+    var startChargingResultKey:StartChargingResultKey?
+    
     
     var parameters:[LeafParameter:String]{
-        
-        var currentParameters:[LeafParameter:String] = mainDriver.parameters
-        var currentParameter:LeafParameter
-        
-        return currentParameters
+        mainDriver.parameters
     }
     
     init(mainDriver:LeafDriver){
-          self.mainDriver = mainDriver
-          restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
+        self.mainDriver = mainDriver
+        restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
     }
     
-    public func getChargingState(){
+    public func startCharging(){
+        
+        let thisCommand:LeafCommand = .startCharging
+        let thisMethod = self.startCharging
+        
+        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
+        
+        Task{
+            do {
+                self.startChargingResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
+                
+                mainDriver.commandQueue.removeValue(forKey: thisCommand)
+                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
+                
+            } catch LeafDriver.LeafAPI.Error.statusError{
+                mainDriver.commandQueue[thisCommand] = thisMethod
+                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
+            }    catch LeafDriver.LeafAPI.Error.decodingError{
+                mainDriver.commandQueue[thisCommand] = thisMethod
+                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
+            }
+        }
         
     }
     
-    public func setChargingState(to chargingState:ChargingState){
-        
-    }
 }
 
