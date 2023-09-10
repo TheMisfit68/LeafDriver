@@ -20,11 +20,7 @@ public class ACController{
         case on
     }
     
-    var airCoStatus:AirCoStatus?{
-        didSet{
-            
-        }
-    }
+    var airCoStatus:AirCoStatus?
     
     var airCoOnResultKey:AirCoOnResultKey?
     var airCoOffResultKey:AirCoOffResultKey?
@@ -48,32 +44,7 @@ public class ACController{
         self.mainDriver = mainDriver
         restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
     }
-    
-    
-    public func getAirCoStatus(){
-        
-        let thisCommand:LeafCommand = .airCoStatus
-        let thisMethod = getAirCoStatus
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
-        
-        
-        Task{
-            do {
-                self.airCoStatus = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
-                
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
-                
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
-        }
-        
-    }
+
     
     
     public func setAirCo(to airCoState:airCoState){
@@ -97,7 +68,6 @@ public class ACController{
         Task{
             do {
                 self.airCoOnResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
-                self.checkAircoOnCompletion()
                 
                 mainDriver.commandQueue.removeValue(forKey: thisCommand)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
@@ -138,69 +108,28 @@ public class ACController{
         }
     }
     
-    
-    
-    private func checkAircoOnCompletion(){
+    public func getAirCoStatus(){
         
-        let thisCommand:LeafCommand = .airCoUpdate
-        let thisMethod = checkAircoOnCompletion
-        
+        let thisCommand:LeafCommand = .airCoStatus
+        let thisMethod = getAirCoStatus
         guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
         
         Task{
             do {
-                let airCoUpdate:AirCoOnRespons? = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
-                guard airCoUpdate?.responseFlag == "1" else { mainDriver.commandQueue[thisCommand] = thisMethod; return}
+                self.airCoStatus = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
                 
-                self.parseAirCoOnRespons()
                 mainDriver.commandQueue.removeValue(forKey: thisCommand)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
             } catch LeafDriver.LeafAPI.Error.statusError{
                 mainDriver.commandQueue[thisCommand] = thisMethod
                 mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
+            }    catch LeafDriver.LeafAPI.Error.decodingError{
                 mainDriver.commandQueue[thisCommand] = thisMethod
                 mainDriver.connectionState = min(mainDriver.connectionState, .connected)
             }
         }
         
     }
-    
-    private func parseAirCoOnRespons(){
-        
-        // TODO: - Reimplement this function after succesful test of Async Await-methods
-        //        let thisCommand:LeafCommand = .airCoUpdate
-        //        let thisMethod = parseAirCoOnRespons
-        //
-        //        if mainDriver.connectionState == .loggedIn{
-        //
-        //            airCoOnResponsPublisher = restAPI.publish(method:.POST, command: thisCommand, parameters: parameters)
-        //
-        //            airCoOnResponsReceiver = airCoOnResponsPublisher
-        //                .sink(receiveCompletion: {completion in
-        //                    self.mainDriver.handle(completion: completion, of: thisCommand, recalOnFailure: thisMethod, callwhenSucceeded: {})
-        //                },
-        //                      receiveValue: {value in
-        //                        if let airCoUpdate = value{
-        //                            if airCoUpdate.responseFlag == "1"{
-        //								logger.info("airCoUpdate \(String(describing: value), privacy: .public)")
-        //
-        //                                //TODO: - set aircoUpdate=>aircostatus?
-        //                                //                                                                                            self.airCoStatus.
-        //
-        //                            }else{
-        //                                self.mainDriver.commandQueue[thisCommand] = thisMethod
-        //                            }
-        //
-        //                        }
-        //
-        //
-        //                }
-        //            )
-        //        }
-        //
-    }
-    
     
 }

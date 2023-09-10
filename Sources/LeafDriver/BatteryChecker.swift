@@ -14,33 +14,49 @@ import OSLog
 public class BatteryChecker{
     
     unowned let mainDriver: LeafDriver
-    
     var restAPI:LeafDriver.LeafAPI
     
+    var batteryUpdateResultKey:BatteryUpdateResultKey?
+    var batteryUpdateresponseBatteryUpdateresponse
     var batteryStatus:BatteryStatus?
     
     public var rangeRemaining:Int?{
-        guard let rangeInMeters = Int(batteryStatus?.batteryStatusRecords.cruisingRangeAcOff ?? "") else {return nil}
-        return rangeInMeters/1000
-    }
-    public var percentageRemaining:Int?{
-        guard let percentage = Int(batteryStatus?.batteryStatusRecords.batteryStatus.soc.value ?? "") else {return nil}
-        return percentage
+        
+        if  updateIsOutdated == false, let rangeString = batteryUpdateresponse.cruisingRangeAcOff, let rangeInMeters = Int(rangeString){
+            return rangeInMeters/1000
+        }else if let rangeString = batteryStatus?.batteryStatusRecords.cruisingRangeAcOff, let rangeInMeters = Int(rangeString){
+            return rangeInMeters/1000
+        }else {
+            return nil
+        }
+        
     }
     
-    var batteryUpdateResultKey:BatteryUpdateResultKey?
-    var batteryUpdateRespons:BatteryUpdateRespons?{
-        didSet{
-            if batteryUpdateRespons?.responseFlag == "1"{
-                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOff = batteryUpdateRespons!.cruisingRangeAcOff
-                self.batteryStatus?.batteryStatusRecords.cruisingRangeAcOn  = batteryUpdateRespons!.cruisingRangeAcOn
-                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW?.hourRequiredToFull = batteryUpdateRespons!.timeRequiredToFull2006KW.hours
-                self.batteryStatus?.batteryStatusRecords.timeRequiredToFull2006KW?.minutesRequiredToFull = batteryUpdateRespons!.timeRequiredToFull2006KW.minutes
-            }
+    public var percentageRemaining:Int?{
+        
+        if updateIsOutdated == false,  let batteryDegradationString = batteryUpdateresponse.batteryDegradation, let batteryCapacityString = batteryUpdateresponse.batteryCapacity, let batteryDegradation = Int(batteryDegradationString), let batteryCapacity = Int(batteryCapacityString) {
+            return (batteryDegradation / batteryCapacity)*100
+        }else if let percentageString = batteryStatus?.batteryStatusRecords.batteryStatus.soc.value, let percentage = Int(percentageString){
+            return percentage
+        }else {
+            return nil
         }
     }
     
-    var parameters:[LeafParameter:String]{
+    private var updateIsOutdated:Bool{
+        
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy/mm/dd HH:mm"
+        guard let updateTimeStamp = formatter.date(from: batteryUpdateresponse.timeStamp ?? "") else {self.sendBatteryUpdateRequest(); return true}
+        
+        if let statusTargetDate = formatter.date(from: batteryStatus?.batteryStatusRecords.targetDate ?? ""), (updateTimeStamp < statusTargetDate){
+            self.sendBatteryUpdateRequest()
+            return true
+        }
+        return false
+    }
+    
+    private var parameters:[LeafParameter:String]{
         
         var currentParameters:[LeafParameter:String] = mainDriver.parameters
         var currentParameter:LeafParameter
@@ -59,6 +75,62 @@ public class BatteryChecker{
         restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
     }
     
+    public func sendBatteryUpdateRequest(){
+        
+        let thisCommand:LeafCommand = .batteryUpdateRequest
+        let thisMethod = self.sendBatteryUpdateRequest
+        
+        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
+        
+        Task{
+            do {
+                self.batteryUpdateResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
+                
+                mainDriver.commandQueue.removeValue(forKey: thisCommand)
+                mainDriver.commandQueue[.batteryUpdateresponse = self.checkBatteryUpdateresponse                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
+                
+            } catch LeafDriver.LeafAPI.Error.statusError{
+                mainDriver.commandQueue[thisCommand] = thisMethod
+                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
+            }	catch LeafDriver.LeafAPI.Error.decodingError{
+                mainDriver.commandQueue[thisCommand] = thisMethod
+                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
+            }
+        }
+        
+        
+    }
+    
+    private func checkBatteryUpdateresponse){
+        
+        let thisCommand:LeafCommand = .batteryUpdateresponse        let thisMethod = self.checkBatteryUpdateresponse        let decoder:JSONDecoder = newJSONDecoder()
+        
+        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
+        
+        
+        Task{
+            do {
+                guard let data = try? await restAPI.post(command: thisCommand, parameters: parameters) else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
+                
+                guard let batteryUpdateStatus = try? decoder.decode(BatteryUpdateStatus.self, from: data) else { throw LeafDriver.LeafAPI.Error.decodingError }
+                guard (batteryUpdateStatus.responseFlag == "1") else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
+                guard let batteryUpdateresponse= try? decoder.decode(BatteryUpdateresponseself, from: data) else { throw LeafDriver.LeafAPI.Error.decodingError}
+                
+                self.batteryUpdateresponse= batteryUpdateresponse                
+                mainDriver.commandQueue.removeValue(forKey: thisCommand)
+                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
+                
+            } catch LeafDriver.LeafAPI.Error.statusError{
+                mainDriver.commandQueue[thisCommand] = thisMethod
+                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
+            }	catch LeafDriver.LeafAPI.Error.decodingError{
+                mainDriver.commandQueue[thisCommand] = thisMethod
+                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
+            }
+            
+        }
+        
+    }
     
     public func getBatteryStatus(){
         
@@ -73,81 +145,15 @@ public class BatteryChecker{
                 self.batteryStatus = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
                 
                 mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.commandQueue[.batteryUpdateRequest] = self.sendBatteryUpdateRequest
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
             } catch LeafDriver.LeafAPI.Error.statusError{
                 mainDriver.commandQueue[thisCommand] = thisMethod
                 mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
+            }    catch LeafDriver.LeafAPI.Error.decodingError{
                 mainDriver.commandQueue[thisCommand] = thisMethod
                 mainDriver.connectionState = min(mainDriver.connectionState, .connected)
             }
-        }
-        
-    }
-    
-    
-    private func sendBatteryUpdateRequest(){
-        
-        let thisCommand:LeafCommand = .batteryUpdateRequest
-        let thisMethod = self.sendBatteryUpdateRequest
-        
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
-        
-        Task{
-            do {
-                self.batteryUpdateResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
-                
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.commandQueue[.batteryUpdateRespons] = self.checkBatteryUpdateRespons
-                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
-                
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
-        }
-        
-        
-    }
-    
-    private func checkBatteryUpdateRespons(){
-                
-        let thisCommand:LeafCommand = .batteryUpdateRespons
-        let thisMethod = self.checkBatteryUpdateRespons
-        let decoder:JSONDecoder = newJSONDecoder()
-
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
-        
-        
-        Task{
-            do {
-                guard let data = try? await restAPI.post(command: thisCommand, parameters: parameters) else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
-                let dataString = String(decoding: data, as: UTF8.self)
-                let logger = Logger(subsystem: "be.oneclick.Leafdriver", category: "BatteryChecker")
-                logger.info("↩️\tReceived data for \(thisCommand.stringValue, privacy: .public):\n\(dataString, privacy: .public)")
-                
-                guard let batteryUpdateStatus = try? decoder.decode(BatteryUpdateStatus.self, from: data) else { throw LeafDriver.LeafAPI.Error.decodingError }
-                guard (batteryUpdateStatus.responseFlag == "1") else { self.mainDriver.commandQueue[thisCommand] = thisMethod; return}
-                guard let batteryUpdateRespons = try? decoder.decode(BatteryUpdateRespons.self, from: data) else { throw LeafDriver.LeafAPI.Error.decodingError}
-                
-                self.batteryUpdateRespons = batteryUpdateRespons
-                
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
-                
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
-            
         }
         
     }
