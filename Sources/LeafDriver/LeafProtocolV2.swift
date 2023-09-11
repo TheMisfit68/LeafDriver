@@ -22,7 +22,7 @@ public struct LeafProtocolV2:LeafProtocol{
 
         .batteryStatus : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
         .batteryUpdateRequest : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
-        .batteryUpdateRespons : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid, .resultKey],
+        .batteryUpdateResponse : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid, .resultKey],
         
         .airCoStatus :  [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
         .airCoOnRequest :      [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],

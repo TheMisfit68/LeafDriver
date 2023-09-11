@@ -5,8 +5,8 @@
 
 import Foundation
 
-// MARK: - BatteryUpdateRespons
-struct BatteryUpdateRespons: Codable {
+// MARK: - BatteryUpdateResponse
+struct BatteryUpdateResponse: Codable {
     let status: Int
     let responseFlag: String
     let operationResult: String

@@ -14,7 +14,7 @@ public enum LeafCommand:String, StringRepresentableEnum{
     
     case batteryStatus = "BatteryStatusRecordsRequest.php"
     case batteryUpdateRequest = "BatteryStatusCheckRequest.php"
-    case batteryUpdateRespons = "BatteryStatusCheckResultRequest.php"
+    case batteryUpdateResponse = "BatteryStatusCheckResultRequest.php"
     
     case airCoStatus = "RemoteACRecordsRequest.php"
     case airCoOnRequest = "ACRemoteRequest.php"
