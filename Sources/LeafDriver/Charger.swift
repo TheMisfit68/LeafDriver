@@ -7,7 +7,8 @@
 
 import Foundation
 import Combine
-import JVCocoa
+import JVSwift
+import JVNetworking
 
 @available(OSX 12.0, *)
 public class Charger{
@@ -28,27 +29,22 @@ public class Charger{
         restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
     }
     
+	
     public func startCharging(){
         
-        let thisCommand:LeafCommand = .startCharging
-        let thisMethod = self.startCharging
-        
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
+		let commandMethodPair:LeafDriver.LeafCommandMethodPair = (command:.startCharging , method:self.startCharging)
+		guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue.enqueue(commandMethodPair); return}
         
         Task{
             do {
-                self.startChargingResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
+				self.startChargingResultKey = try await restAPI.decode(method: .POST, command: .startCharging, parameters: parameters)
                 
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
-                mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
+				mainDriver.removeFromQueue(commandMethodPair)
+				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }    catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
+			} catch let error as LeafDriver.LeafAPI.Error{
+				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
+			}
         }
         
     }

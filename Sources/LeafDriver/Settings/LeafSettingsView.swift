@@ -6,103 +6,106 @@
 //
 
 import SwiftUI
-import JVCocoa
+import RegexBuilder
+import JVSwift
+import JVSwiftCore
+import JVSecurity
+import JVUI
 
 public struct LeafSettingsView: View, SettingsView, Securable {
-    
-    public let notificationKey: String = "LeafSettingsChanged"
-    
-    @State var userName: String = ""
-    @State var passWord: String = ""
-    
-    public init(){}
-    
-    @AppStorage("regionCode", store: UserDefaults(suiteName: "be.oneclick.jan.LeafDriver")) var regionCode: String = Region.allCases[0].rawValue
-    @AppStorage("language", store: UserDefaults(suiteName: "be.oneclick.jan.LeafDriver")) var language: String = Language.allCases[0].rawValue
-    @AppStorage("timeZone", store: UserDefaults(suiteName: "be.oneclick.jan.LeafDriver")) var timeZone: String = TimeZone.allCases[0].rawValue
-    
-    public var body: some View {
-        
-        Form{
-            Section(header: Label(String(localized: "Account",bundle: .module), systemImage: "person.fill")) {
-                HStack {
-                    Text(String(localized: "Username", bundle:.module))
-                        .frame(alignment: .trailing)
-                    TextField("", text: $userName, onCommit:{
-                        _ = storePasswordInKeyChain(name:"LeafDriver", account: userName, location: "be.oneclick.LeafDriver", passWord: passWord)
-                    })
-                    .frame(width: 250, alignment: .trailing)
-                }
-                HStack {
-                    Text(String(localized: "Password", bundle:.module))
-                        .frame(width: 100, alignment: .trailing)
-                    SecureField("", text: $passWord, onCommit: {
-                        _ = storePasswordInKeyChain(name:"LeafDriver", account: userName, location: "be.oneclick.LeafDriver", passWord: passWord)
-                    })
-                    .frame(width: 250, alignment: .trailing)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                }
-            }
-            Section(header: Label(String(localized: "Regional Settings", bundle:.module), systemImage: "globe")) {
-                HStack {
-                    Text(String(localized: "Region Code", bundle:.module))
-                        .frame(width: 100, alignment: .trailing)
-                    Picker("", selection: $regionCode) {
-                        ForEach(Region.allCases, id: \.self) { item in
-                            Text(item.localizedDescription.capitalized)
-                                .tag(item.rawValue)
-                        }
-                    }
-                    .frame(width: 200)
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: timeZone) { newValue in postNotification() }
-                }
-                HStack {
-                    Text(String(localized: "Language", bundle:.module))
-                        .frame(width: 100, alignment: .trailing)
-                    Picker("", selection: $language) {
-                        ForEach(Language.allCases, id: \.self) { item in
-                            Text(item.localizedDescription.capitalized)
-                                .tag(item.rawValue)
-                        }
-                    }
-                    .frame(width: 200)
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: timeZone) { newValue in postNotification() }
-                }
-                HStack {
-                    Text(String(localized: "Timezone", bundle:.module))
-                        .frame(width: 100, alignment: .trailing)
-                    Picker("", selection:$timeZone) {
-                        ForEach(TimeZone.allCases, id: \.self) { item in
-                            Text(item.localizedDescription.capitalized)
-                                .tag(item.rawValue)
-                        }
-                    }
-                    .frame(width: 200)
-                    .pickerStyle(MenuPickerStyle())
-                    .onChange(of: timeZone) { newValue in postNotification() }
-                }
-            }
-        }
-        .padding(5)
-        .onAppear{
-            // Should use this to intialise @State properties
-            if let storedUserName = accountFromKeyChain(name:"LeafDriver", location: "be.oneclick.LeafDriver") {
-                self.userName = storedUserName
-                
-                if let storedPassword = passwordFromKeyChain(name:"LeafDriver", account:self.userName, location: "be.oneclick.LeafDriver"){
-                    self.passWord = storedPassword
-                }
-                
-            }
-        }
-    }
+	
+	@State private var userName: String
+	@State private var password: String
+	
+	@AppStorage("regionCode", store: UserDefaults(suiteName: "be.oneclick.jan.LeafDriver")) private var regionCode: String = Region.allCases[0].rawValue
+	@AppStorage("language", store: UserDefaults(suiteName: "be.oneclick.jan.LeafDriver")) private var language: String = Language.allCases[0].rawValue
+	@AppStorage("timeZone", store: UserDefaults(suiteName: "be.oneclick.jan.LeafDriver")) private var timeZone: String = TimeZone.allCases[0].rawValue
+	
+	public let notificationKey: String = "LeafDriverSettingsChanged"
+	
+	// An explicit public initializer
+	public init() {
+		_userName = State(initialValue: "")
+		_password = State(initialValue: "")
+	}
+	
+	
+	public var body: some View {
+		
+		Form{
+			UserCredentialsSection(userName: $userName, password: $password, onCommitMethod: self.onCommitMethod, notificationKey: self.notificationKey)
+			
+			Section(header: Label(String(localized: "Regional Settings", bundle:.module), systemImage: "globe")) {
+				HStack {
+					Text(String(localized: "Region Code", bundle:.module))
+						.frame(width: 100, alignment: .trailing)
+					Picker("", selection: $regionCode) {
+						ForEach(Region.allCases, id: \.self) { item in
+							Text(item.localizedDescription.capitalized)
+								.tag(item.rawValue)
+						}
+					}
+					.frame(width: 200)
+					.pickerStyle(MenuPickerStyle())
+					.onChange(of: regionCode) { newValue in postNotification() }
+				}
+				HStack {
+					Text(String(localized: "Language", bundle:.module))
+						.frame(width: 100, alignment: .trailing)
+					Picker("", selection: $language) {
+						ForEach(Language.allCases, id: \.self) { item in
+							Text(item.localizedDescription.capitalized)
+								.tag(item.rawValue)
+						}
+					}
+					.frame(width: 200)
+					.pickerStyle(MenuPickerStyle())
+					.onChange(of: language) { newValue in postNotification() }
+				}
+				HStack {
+					Text(String(localized: "Timezone", bundle:.module))
+						.frame(width: 100, alignment: .trailing)
+					Picker("", selection:$timeZone) {
+						ForEach(TimeZone.allCases, id: \.self) { item in
+							Text(item.localizedDescription.capitalized)
+								.tag(item.rawValue)
+						}
+					}
+					.frame(width: 200)
+					.pickerStyle(MenuPickerStyle())
+					.onChange(of: timeZone) { newValue in postNotification() }
+				}
+			}
+		}
+		.padding(25)
+		.onAppear{
+			onAppearMethod()
+		}
+	}
+	
+	private var serverAndLocation:(String,String){
+		
+		var server:String = "be.oneclick.LeafDriver"
+		let location = LeafProtocolV2().baseURL
+		let serverPattern = /https?:\/\/(?:www\.)?([^:\/\s]+)./.ignoresCase()
+		if let match = location.firstMatch(of: serverPattern) {
+			server = String(match.1)
+		}
+		return (server,location)
+		
+	}
+	
+	private func onAppearMethod(){
+		if let userCredentials = internetCredentialsFromKeyChain(name: "LeafDriver", location: serverAndLocation.1){
+			self.userName = userCredentials.account
+			self.password = userCredentials.password
+		}
+	}
+	
+	private func onCommitMethod(){
+		_ = storeInternetCredentialsInKeyChain(name: "LeafDriver", serverAndPort: (serverAndLocation.0, nil), location: serverAndLocation.1, account: self.userName, password: self.password)
+	}
+	
 }
 
 
-
-// Preview code remains unchanged
-#Preview {
-    LeafSettingsView()
-}

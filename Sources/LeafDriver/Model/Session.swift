@@ -1,7 +1,7 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
-//   let session = try? newJSONDecoder().decode(Session.self, from: jsonData)
+//   let session = try? JSONDecoder().decode(Session.self, from: jsonData)
 
 import Foundation
 
@@ -9,10 +9,10 @@ import Foundation
 struct Session: Codable {
     let status: Int
     let sessionId: String
-    let vehicleInfoList: VehicleInfoList
-    let vehicle: Vehicle
+    let vehicleInfoList: SessionVehicleInfoList
+    let vehicle: SessionVehicle
     let encAuthToken: String
-    let customerInfo: CustomerInfo
+    let customerInfo: SessionCustomerInfo
     let userInfoRevisionNo: String
     let ngTapUpdatebtn: String
     let timeoutUpdateAnime: String
@@ -29,7 +29,7 @@ struct Session: Codable {
     let g2Ui: String
     let g2Ut: String
     let resultKey: String
-
+    
     enum CodingKeys: String, CodingKey {
         case status = "status"
         case sessionId = "sessionId"
@@ -56,8 +56,8 @@ struct Session: Codable {
     }
 }
 
-// MARK: - CustomerInfo
-struct CustomerInfo: Codable {
+// MARK: - SessionCustomerInfo
+struct SessionCustomerInfo: Codable {
     let userId: String
     let language: String
     let timezone: String
@@ -68,8 +68,8 @@ struct CustomerInfo: Codable {
     let country: String
     let vehicleImage: String
     let userVehicleBoundDurationSec: String
-    let vehicleInfo: VehicleInfo
-
+    let vehicleInfo: SessionCustomerInfoVehicleInfo
+    
     enum CodingKeys: String, CodingKey {
         case userId = "UserId"
         case language = "Language"
@@ -82,5 +82,105 @@ struct CustomerInfo: Codable {
         case vehicleImage = "VehicleImage"
         case userVehicleBoundDurationSec = "UserVehicleBoundDurationSec"
         case vehicleInfo = "VehicleInfo"
+    }
+}
+
+// MARK: - SessionCustomerInfoVehicleInfo
+struct SessionCustomerInfoVehicleInfo: Codable {
+    let vin: String
+    let dcmid: String
+    let simid: String
+    let naviid: String
+    let encryptedNAVIID: String
+    let msn: String
+    let lastVehicleLoginTime: String
+    let userVehicleBoundTime: Date
+    let lastDCMUseTime: String
+    let nonaviFlg: String
+    let carName: String
+    let carImage: String
+    
+    enum CodingKeys: String, CodingKey {
+        case vin = "VIN"
+        case dcmid = "DCMID"
+        case simid = "SIMID"
+        case naviid = "NAVIID"
+        case encryptedNAVIID = "EncryptedNAVIID"
+        case msn = "MSN"
+        case lastVehicleLoginTime = "LastVehicleLoginTime"
+        case userVehicleBoundTime = "UserVehicleBoundTime"
+        case lastDCMUseTime = "LastDCMUseTime"
+        case nonaviFlg = "NonaviFlg"
+        case carName = "CarName"
+        case carImage = "CarImage"
+    }
+}
+
+// MARK: - SessionVehicle
+struct SessionVehicle: Codable {
+    let profile: SessionProfile
+    
+    enum CodingKeys: String, CodingKey {
+        case profile = "profile"
+    }
+}
+
+// MARK: - SessionProfile
+struct SessionProfile: Codable {
+    let vin: String
+    let gdcUserId: String
+    let gdcPassword: String
+    let encAuthToken: String
+    let dcmId: String
+    let nickname: String
+    let modelyear: String
+    
+    enum CodingKeys: String, CodingKey {
+        case vin = "vin"
+        case gdcUserId = "gdcUserId"
+        case gdcPassword = "gdcPassword"
+        case encAuthToken = "encAuthToken"
+        case dcmId = "dcmId"
+        case nickname = "nickname"
+        case modelyear = "modelyear"
+    }
+}
+
+// MARK: - SessionVehicleInfoList
+struct SessionVehicleInfoList: Codable {
+    let vehicleInfo: [SessionVehicleInfoElement]
+    let vehicleInfoListVehicleInfo: [SessionVehicleInfo]
+    
+    enum CodingKeys: String, CodingKey {
+        case vehicleInfo = "VehicleInfo"
+        case vehicleInfoListVehicleInfo = "vehicleInfo"
+    }
+}
+
+// MARK: - SessionVehicleInfoElement
+struct SessionVehicleInfoElement: Codable {
+    let nickname: String
+    let telematicsEnabled: String
+    let vin: String
+    
+    enum CodingKeys: String, CodingKey {
+        case nickname = "nickname"
+        case telematicsEnabled = "telematicsEnabled"
+        case vin = "vin"
+    }
+}
+
+// MARK: - SessionVehicleInfo
+struct SessionVehicleInfo: Codable {
+    let nickname: String
+    let telematicsEnabled: String
+    let vin: String
+    let customSessionid: String
+    
+    enum CodingKeys: String, CodingKey {
+        case nickname = "nickname"
+        case telematicsEnabled = "telematicsEnabled"
+        case vin = "vin"
+        case customSessionid = "custom_sessionid"
     }
 }

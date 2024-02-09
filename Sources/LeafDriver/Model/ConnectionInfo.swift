@@ -1,7 +1,7 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
-//   let connectionInfo = try? newJSONDecoder().decode(ConnectionInfo.self, from: jsonData)
+//   let connectionInfo = try? JSONDecoder().decode(ConnectionInfo.self, from: jsonData)
 
 import Foundation
 
@@ -16,4 +16,6 @@ struct ConnectionInfo: Codable {
         case message = "message"
         case baseprm = "baseprm"
     }
+    
 }
+

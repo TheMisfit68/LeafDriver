@@ -5,7 +5,8 @@
 //  Created by Jan Verrept on 25/04/2020.
 //
 import Foundation
-import JVCocoa
+import JVSwift
+import JVNetworking
 import Combine
 
 @available(OSX 12.0, *)
@@ -58,76 +59,58 @@ public class ACController{
     }
     
     private func setAirCoOn(){
-        
-        let thisCommand:LeafCommand = .airCoOnRequest
-        let thisMethod = setAirCoOn
-        
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
+                
+		let commandMethodPair:LeafDriver.LeafCommandMethodPair = (command:.airCoOnRequest , method:self.setAirCoOn)
+		guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue.enqueue(commandMethodPair); return}
         
         
         Task{
             do {
-                self.airCoOnResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
+				self.airCoOnResultKey = try await restAPI.decode(method: .POST, command: .airCoOnRequest, parameters: parameters)
                 
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
+				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
+			}  catch let error as LeafDriver.LeafAPI.Error{
+				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
+			}
         }
     }
     
     
     private func setAirCoOff(){
-        
-        let thisCommand:LeafCommand = .airCoOffRequest
-        let thisMethod = setAirCoOff
-        
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
-        
-        
+		        
+		let commandMethodPair:LeafDriver.LeafCommandMethodPair = (command:.airCoOffRequest , method:self.setAirCoOff)
+		guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue.enqueue(commandMethodPair); return}
+
         Task{
             do {
-                self.airCoOffResultKey = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
+				self.airCoOffResultKey = try await restAPI.decode(method: .POST, command: .airCoOffRequest, parameters: parameters)
                 
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
+				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }	catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
+			} catch let error as LeafDriver.LeafAPI.Error{
+				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
+			}
         }
     }
     
     public func getAirCoStatus(){
         
-        let thisCommand:LeafCommand = .airCoStatus
-        let thisMethod = getAirCoStatus
-        guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue[thisCommand] = thisMethod; return}
+		let commandMethodPair:LeafDriver.LeafCommandMethodPair = (command:.airCoStatus , method:self.getAirCoStatus)
+		guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue.enqueue(commandMethodPair); return}
         
         Task{
             do {
-                self.airCoStatus = try await restAPI.decode(method: .POST, command: thisCommand, parameters: parameters)
+				self.airCoStatus = try await restAPI.decode(method: .POST, command: .airCoStatus, parameters: parameters)
                 
-                mainDriver.commandQueue.removeValue(forKey: thisCommand)
+				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-            } catch LeafDriver.LeafAPI.Error.statusError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .disconnected)
-            }    catch LeafDriver.LeafAPI.Error.decodingError{
-                mainDriver.commandQueue[thisCommand] = thisMethod
-                mainDriver.connectionState = min(mainDriver.connectionState, .connected)
-            }
+			} catch let error as LeafDriver.LeafAPI.Error{
+				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
+			}
         }
         
     }

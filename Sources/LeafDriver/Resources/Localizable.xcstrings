@@ -12,6 +12,7 @@
       }
     },
     "Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "nl" : {
           "stringUnit" : {
@@ -162,6 +163,7 @@
       }
     },
     "Username" : {
+      "extractionState" : "stale",
       "localizations" : {
         "nl" : {
           "stringUnit" : {

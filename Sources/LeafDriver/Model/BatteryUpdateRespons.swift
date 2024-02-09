@@ -1,7 +1,7 @@
 // This file was generated from JSON Schema using quicktype, do not modify it directly.
 // To parse the JSON, add this file to your project and do:
 //
-//   let batteryUpdateRespons = try? newJSONDecoder().decode(batteryUpdateRespons.self, from: jsonData)
+//   let batteryUpdateRespons = try? JSONDecoder().decode(batteryUpdateRespons.self, from: jsonData)
 
 import Foundation
 
