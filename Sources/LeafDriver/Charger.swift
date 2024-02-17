@@ -20,13 +20,9 @@ public class Charger{
     var startChargingResultKey:StartChargingResultKey?
     
     
-    var parameters:[LeafParameter:String]{
-        mainDriver.parameters
-    }
-    
-    init(mainDriver:LeafDriver){
-        self.mainDriver = mainDriver
-        restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
+	init(mainDriver:LeafDriver){
+		self.mainDriver = mainDriver
+		restAPI = RestAPI(baseURL: mainDriver.restAPI.baseURL)
     }
     
 	
@@ -37,14 +33,17 @@ public class Charger{
         
         Task{
             do {
-				self.startChargingResultKey = try await restAPI.decode(method: .POST, command: .startCharging, parameters: parameters)
-                
+				self.startChargingResultKey = try await restAPI.decode(method: .POST,
+																	   command: LeafCommand.startCharging,
+																	   includingBaseParameters: mainDriver.baseParameters,
+																	   timeout: 75)
 				mainDriver.removeFromQueue(commandMethodPair)
 				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
+			mainDriver.runCommandQueue()
         }
         
     }

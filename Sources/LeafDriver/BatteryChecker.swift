@@ -105,23 +105,9 @@ public class BatteryChecker{
 		return false
 	}
 	
-	private var parameters:[LeafParameter:String]{
-		
-		var currentParameters:[LeafParameter:String] = mainDriver.parameters
-		var currentParameter:LeafParameter
-		
-		// ResultKey
-		currentParameter = LeafParameter.resultKey
-		if let currentValue = batteryUpdateResultKey?.resultKey{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		return currentParameters
-	}
-	
 	init(mainDriver:LeafDriver){
 		self.mainDriver = mainDriver
-		restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
+		restAPI = RestAPI(baseURL: mainDriver.restAPI.baseURL)
 	}
 	
 	// MARK: - BatteryUpdate
@@ -136,7 +122,10 @@ public class BatteryChecker{
 		Task{
 			do {
 				
-				self.batteryUpdateResultKey = try await restAPI.decode(method: .POST, command: .batteryUpdateRequest, parameters: parameters)
+				self.batteryUpdateResultKey = try await restAPI.decode(method: .POST,
+																	   command: LeafCommand.batteryUpdateRequest,
+																	   includingBaseParameters: mainDriver.baseParameters,
+																	   timeout: 75)
 				
 				mainDriver.removeFromQueue(commandMethodPair)
 				
@@ -144,10 +133,10 @@ public class BatteryChecker{
 				mainDriver.commandQueue.enqueue(nextCommandAndMethod)
 				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
 				
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error {
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
-			
+			mainDriver.runCommandQueue()
 		}
 		
 	}
@@ -159,25 +148,29 @@ public class BatteryChecker{
 		
 		Task{
 			do {
-				let responseData = try? await restAPI.post(command: .batteryUpdateResponse, parameters: parameters)
+				let resultKeyParameters = ResultKeyParameters(resultKey: batteryUpdateResultKey?.resultKey ?? "")
+				let responseData = try await restAPI.post(command: LeafCommand.batteryUpdateResponse, 
+														  parameters:resultKeyParameters,
+														  includingBaseParameters: mainDriver.baseParameters,
+														  timeout: 75)
+				
 				guard responseData != nil else { return }
 				let decoder:JSONDecoder = JSONDecoder()
-				
-				guard let batteryUpdateStatus = try? decoder.decode(BatteryUpdateStatus.self, from: responseData!) else { throw LeafDriver.LeafAPI.Error.decodingError}
+				let batteryUpdateStatus = try decoder.decode(BatteryUpdateStatus.self, from: responseData!)
 				self.batteryUpdateStatus = batteryUpdateStatus
 				let updateReady:Bool = self.batteryUpdateStatus?.responseFlag == "1"
 				
 				guard updateReady else  {mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn); return}
-				guard let batteryUpdateResponse = try? decoder.decode(BatteryUpdateResponse.self, from: responseData!) else {throw LeafDriver.LeafAPI.Error.decodingError}
+				let batteryUpdateResponse = try decoder.decode(BatteryUpdateResponse.self, from: responseData!)
 				self.batteryUpdateResponse = batteryUpdateResponse
 				
 				mainDriver.removeFromQueue(commandMethodPair)
 				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
 								
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error {
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
-			
+			mainDriver.runCommandQueue()
 		}
 	}
 
@@ -192,15 +185,18 @@ public class BatteryChecker{
 		Task{
 			do {
 				
-				self.batteryStatus = try await restAPI.decode(method: .POST, command: .batteryStatus, parameters: parameters)
+				self.batteryStatus = try await restAPI.decode(method: .POST,
+															  command: LeafCommand.batteryStatus,
+															  includingBaseParameters: mainDriver.baseParameters,
+															  timeout: 75)
 				
 				mainDriver.removeFromQueue(commandMethodPair)
 				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
 				
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error {
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
-			
+			mainDriver.runCommandQueue()
 		}
 		
 	}

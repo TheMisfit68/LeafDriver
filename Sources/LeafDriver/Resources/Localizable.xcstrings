@@ -11,17 +11,6 @@
         }
       }
     },
-    "Account" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account"
-          }
-        }
-      }
-    },
     "American" : {
       "localizations" : {
         "nl" : {
@@ -158,17 +147,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "VS"
-          }
-        }
-      }
-    },
-    "Username" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gebruikersnaam"
           }
         }
       }

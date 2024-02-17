@@ -22,32 +22,14 @@ public class ACController{
     }
     
     var airCoStatus:AirCoStatus?
-    
     var airCoOnResultKey:AirCoOnResultKey?
     var airCoOffResultKey:AirCoOffResultKey?
     
-    var parameters:[LeafParameter:String]{
-        
-        var currentParameters:[LeafParameter:String] = mainDriver.parameters
-        var currentParameter:LeafParameter
-        
-        // ResultKey
-        currentParameter = LeafParameter.resultKey
-        if let currentValue = airCoOnResultKey?.resultKey{
-            currentParameters[currentParameter] = currentValue
-        }
-        
-        return currentParameters
-        
-    }
-    
     init(mainDriver:LeafDriver){
         self.mainDriver = mainDriver
-        restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: mainDriver.restAPI.baseURL, endpointParameters: mainDriver.restAPI.endpointParameters)
+        restAPI = RestAPI(baseURL: mainDriver.restAPI.baseURL)
     }
 
-    
-    
     public func setAirCo(to airCoState:airCoState){
         
         if airCoState == .on{
@@ -66,12 +48,15 @@ public class ACController{
         
         Task{
             do {
-				self.airCoOnResultKey = try await restAPI.decode(method: .POST, command: .airCoOnRequest, parameters: parameters)
+				self.airCoOnResultKey = try await restAPI.decode(method: .POST,
+																 command: LeafCommand.airCoOnRequest,
+																 includingBaseParameters: mainDriver.baseParameters,
+																 timeout: 75)
                 
 				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-			}  catch let error as LeafDriver.LeafAPI.Error{
+			}  catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
         }
@@ -85,14 +70,17 @@ public class ACController{
 
         Task{
             do {
-				self.airCoOffResultKey = try await restAPI.decode(method: .POST, command: .airCoOffRequest, parameters: parameters)
-                
+				self.airCoOffResultKey = try await restAPI.decode(method: .POST,
+																  command: LeafCommand.airCoOffRequest,
+																  includingBaseParameters: mainDriver.baseParameters,
+																  timeout: 75)
 				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
+			mainDriver.runCommandQueue()
         }
     }
     
@@ -103,14 +91,17 @@ public class ACController{
         
         Task{
             do {
-				self.airCoStatus = try await restAPI.decode(method: .POST, command: .airCoStatus, parameters: parameters)
-                
+				self.airCoStatus = try await restAPI.decode(method: .POST,
+															command: LeafCommand.airCoStatus,
+															includingBaseParameters: mainDriver.baseParameters,
+															timeout: 75)
 				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
                 
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
+			mainDriver.runCommandQueue()
         }
         
     }

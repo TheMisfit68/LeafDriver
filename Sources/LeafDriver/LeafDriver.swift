@@ -14,14 +14,35 @@ import Combine
 import CryptoSwift
 import OSLog
 
-
 @available(OSX 12.0, *)
 open class LeafDriver:Configurable, Securable{
+	
 	let logger = Logger(subsystem: "be.oneclick.LeafDriver", category:"LeafDriver")
 	
 	var leafProtocol:LeafProtocol
 	
 	public let notificationKey:String = "LeafDriverSettingsChanged"
+	
+	struct UserSettings{
+		
+		var userID:String
+		var clearPassWord:String
+		var regionCode:String
+		var language:String
+		var timeZone:String
+		
+		func encryptedPassWord(withKey encryptionKey:String)->String{
+			
+			let password = Array(self.clearPassWord.utf8)
+			let key = Array(encryptionKey.utf8)
+			
+			let blowFishEncryptor = try? Blowfish(key: key, blockMode: ECB(), padding: .pkcs5)
+			let encryptedPassword =  try? blowFishEncryptor?.encrypt(password).toBase64()
+			return encryptedPassword ?? ""
+		}
+		
+	}
+	var userSettings:UserSettings! // Made explicitly unwrapped because it is initialized with the reloadSettings method
 	
 	public func reloadSettings(){
 		
@@ -33,16 +54,15 @@ open class LeafDriver:Configurable, Securable{
 		// Read te parameters from the Preferences…
 		let settings = UserDefaults(suiteName: "be.oneclick.jan.LeafDriver")
 		
-		let userParameters:[LeafParameter:String] = [
-			.initialAppStr: leafProtocol.initialAppString,
-			.userID: userName,
-			.clearPassWord: password,
-			.regionCode: settings?.string(forKey: "regionCode") ?? "",
-			.language: settings?.string(forKey: "language") ?? "",
-			.timeZone: settings?.string(forKey: "timeZone") ?? ""
-		]
+		self.userSettings = UserSettings(
+			userID: userName,
+			clearPassWord: password,
+			regionCode: settings?.string(forKey: "regionCode") ?? "",
+			language: settings?.string(forKey: "language") ?? "",
+			timeZone: settings?.string(forKey: "timeZone") ?? ""
+		)
 		
-		self.restAPI = RestAPI<LeafCommand, LeafParameter>(baseURL: leafProtocol.baseURL, endpointParameters: leafProtocol.requiredCommandParameters, baseValues: userParameters)
+		self.restAPI = RestAPI(baseURL: leafProtocol.baseURL)
 		
 	}
 	
@@ -50,7 +70,7 @@ open class LeafDriver:Configurable, Securable{
 	public typealias LeafCommandMethodPair = (command:LeafCommand,method:AnyLeafMethod)
 	public var commandQueue = Queue<LeafCommandMethodPair> ()
 	
-	public typealias LeafAPI = RestAPI<LeafCommand, LeafParameter>
+	public typealias LeafAPI = RestAPI
 	var restAPI:LeafAPI!
 	
 	public enum ConnectionState:Int, Comparable{
@@ -103,77 +123,19 @@ open class LeafDriver:Configurable, Securable{
 	}
 	
 	
-	var parameters:[LeafParameter:String]{
-		
-		var currentParameters:[LeafParameter:String] = [:]
-		var currentParameter:LeafParameter
-		
-		func encryptUsingBlowfish(password:String, key:String)->String{
-			
-			let password = Array(password.utf8)
-			let key = Array(key.utf8)
-			
-			let blowFishEncryptor = try? Blowfish(key: key, blockMode: ECB(), padding: .pkcs5)
-			let encryptedPassword =  try? blowFishEncryptor?.encrypt(password).toBase64()
-			return encryptedPassword ?? ""
-			
+	var baseParameters:HTTPFormEncodable{
+		get{
+			BaseParameters(regionCode: session?.customerInfo.regionCode ?? "",
+						   timeZone: session?.customerInfo.timezone ?? "",
+						   language: session?.customerInfo.language ?? "",
+						   customSessionID: session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.customSessionid ?? "",
+						   vin: session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.vin ?? "",
+						   dcmid: session?.vehicle.profile.dcmId ?? ""
+			)
 		}
-		
-		// User
-		// UserID
-		currentParameter = LeafParameter.userID
-		if let currentValue = session?.customerInfo.eMailAddress{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		// Password
-		currentParameter = LeafParameter.encryptedPassWord
-		if let clearPassWord:String = restAPI.baseValues[.clearPassWord],
-		   let encryptionkey:String = connectionInfo?.baseprm{
-			let currentValue = encryptUsingBlowfish(password: clearPassWord, key:encryptionkey)
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		// RegionCode
-		currentParameter = LeafParameter.regionCode
-		if let currentValue = session?.customerInfo.regionCode{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		// Timezone
-		currentParameter = LeafParameter.timeZone
-		if let currentValue = session?.customerInfo.timezone{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		// Language
-		currentParameter = LeafParameter.language
-		if let currentValue = session?.customerInfo.language{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		// Session
-		// SessionID
-		currentParameter = LeafParameter.customSessionID
-		if let currentValue = session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.customSessionid{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		// Vehicle
-		// VIN
-		currentParameter = LeafParameter.vin
-		if let currentValue = session?.vehicleInfoList.vehicleInfoListVehicleInfo.first?.vin{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		// DCMID
-		currentParameter = LeafParameter.dcmid
-		if let currentValue = session?.vehicle.profile.dcmId{
-			currentParameters[currentParameter] = currentValue
-		}
-		
-		return currentParameters
 	}
+	
+	
 	
 	public init(leafProtocol:LeafProtocol){
 		
@@ -198,13 +160,14 @@ open class LeafDriver:Configurable, Securable{
 		
 		Task{
 			do {
-				self.connectionInfo = try await restAPI.decode(method:RestAPI.Method.POST, command: .connect, parameters: parameters)
+				let connectParameters = ConnectParameters(initialAppStr: self.leafProtocol.initialAppString)
+				self.connectionInfo = try await restAPI.decode(method:RestAPI.Method.POST, command: LeafCommand.connect, parameters: connectParameters, timeout: 30)
 				connectionState = max(connectionState, .connected)
 				logger.info("Leafdriver connected succesfully")
-				runCommandQueue()
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error{
 				handleLeafAPIError(error)
 			}
+			runCommandQueue()
 		}
 		
 	}
@@ -215,13 +178,20 @@ open class LeafDriver:Configurable, Securable{
 		
 		Task{
 			do {
-				self.session = try await restAPI.decode(method:RestAPI.Method.POST, command: .login, parameters: parameters)
+				let loginParameters = LoginParameters(initialAppStr: leafProtocol.initialAppString,
+													  userID: userSettings.userID,
+													  encryptedPassWord: userSettings.encryptedPassWord(withKey: connectionInfo?.baseprm ?? ""),
+													  regionCode: userSettings.regionCode,
+													  timeZone: userSettings.timeZone,
+													  language: userSettings.language
+				)
+				self.session = try await restAPI.decode(method:RestAPI.Method.POST, command: LeafCommand.login, parameters: loginParameters, timeout: 75)
 				connectionState = max(connectionState, .loggedIn)
 				logger.info("Leafdriver logged in succesfully")
-				runCommandQueue()
-			} catch let error as LeafDriver.LeafAPI.Error{
+			} catch let error{
 				handleLeafAPIError(error)
 			}
+			runCommandQueue()
 		}
 		
 	}
@@ -243,7 +213,6 @@ open class LeafDriver:Configurable, Securable{
 					}
 					self.queueTime = 60
 			}
-			
 			holdCommandQueue.set()
 		}
 		
@@ -255,20 +224,19 @@ open class LeafDriver:Configurable, Securable{
 		}
 	}
 	
-	internal func handleLeafAPIError(_ error: LeafDriver.LeafAPI.Error, for commandMethodPair: LeafCommandMethodPair? = nil) {
+	internal func handleLeafAPIError(_ error: Error, for commandMethodPair: LeafCommandMethodPair? = nil) {
 		
 		switch error {
-			case .statusError:
+			default:
 				connectionState = .disconnected
-			case .timeoutError:
-				connectionState = .disconnected
-			case .decodingError:
-				connectionState = .connected
 		}
+		var errorMessage:String = ""
 		if let commandMethodPair = commandMethodPair{
+			errorMessage += "\(commandMethodPair.command.stringValue)\n"
 			commandQueue.enqueue( commandMethodPair )
 		}
-		
+		errorMessage += error.localizedDescription
+		logger.error("\(errorMessage)")
 	}
 	
 }

@@ -6,8 +6,12 @@
 //
 
 import Foundation
+import JVNetworking
 
+/// write alle struct names in uppercase
 public struct LeafProtocolV2:LeafProtocol{
+	
+	public init(){}
     
     public var version:Int = 2
     
@@ -15,22 +19,58 @@ public struct LeafProtocolV2:LeafProtocol{
     
     public var initialAppString:String = "9s5rfKVuMrT03RtzajWNcA"
     
-    public let requiredCommandParameters: [LeafCommand : [LeafParameter]] = [
-        
-        .connect : [.initialAppStr],
-        .login :   [.initialAppStr, .userID, .encryptedPassWord, .regionCode, .timeZone, .language],
+}
 
-        .batteryStatus : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
-        .batteryUpdateRequest : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
-        .batteryUpdateResponse : [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid, .resultKey],
-        
-        .airCoStatus :  [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
-        .airCoOnRequest :      [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
-        .airCoOffRequest :     [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid],
-        .airCoUpdate :  [.regionCode, .timeZone, .language, .customSessionID, .vin, .dcmid, .resultKey],
-    ]
-    
-    public init(){
-    }
-    
+
+struct ConnectParameters: HTTPFormEncodable {
+	var initialAppStr: String
+	
+	enum CodingKeys: String, CodingKey {
+		case initialAppStr = "initial_app_str"
+	}
+}
+
+struct LoginParameters: HTTPFormEncodable {
+	var initialAppStr: String
+	var userID: String
+	var encryptedPassWord: String
+	var regionCode: String
+	var timeZone: String
+	var language: String
+	
+	enum CodingKeys: String, CodingKey {
+		case initialAppStr = "initial_app_str"
+		case userID = "UserId"
+		case encryptedPassWord = "Password"
+		case regionCode = "RegionCode"
+		case timeZone = "tz"
+		case language = "lg"
+	}
+	
+}
+
+struct BaseParameters: HTTPFormEncodable {
+	var regionCode: String
+	var timeZone: String
+	var language: String
+	var customSessionID: String
+	var vin: String
+	var dcmid: String
+	
+	enum CodingKeys: String, CodingKey {
+		case regionCode = "RegionCode"
+		case timeZone = "tz"
+		case language = "lg"
+		case customSessionID = "custom_sessionid"
+		case vin = "VIN"
+		case dcmid = "DCMID"
+	}
+}
+
+struct ResultKeyParameters: HTTPFormEncodable {
+	var resultKey: String
+	
+	enum CodingKeys: String, CodingKey {
+		case resultKey = "resultKey"
+	}
 }

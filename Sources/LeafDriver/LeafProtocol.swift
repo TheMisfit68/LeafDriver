@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import JVNetworking
 
 public protocol LeafProtocol{
     
@@ -14,7 +15,5 @@ public protocol LeafProtocol{
     var baseURL:String {get}
     
     var initialAppString:String {get}
-    
-    var requiredCommandParameters:[LeafCommand : [LeafParameter]] {get}
-    
+        
 }

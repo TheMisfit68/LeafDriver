@@ -7,6 +7,7 @@
 
 import JVSwift
 import JVSwiftCore
+import JVNetworking
 
 public enum LeafCommand:String, StringRepresentableEnum{
 	
@@ -24,24 +25,6 @@ public enum LeafCommand:String, StringRepresentableEnum{
 	
 	case startCharging = "BatteryRemoteChargingRequest.php"
 	
-}
-
-public enum LeafParameter:String, StringRepresentableEnum{
-    
-    case initialAppStr = "initial_app_str"
-    case userID = "UserId"
-    case clearPassWord
-    case encryptedPassWord = "Password"
-    
-    case customSessionID = "custom_sessionid"
-    case regionCode = "RegionCode"
-    case timeZone = "tz"
-    case language = "lg"
-    
-    case vin = "VIN"
-    case dcmid = "DCMID"
-    
-    case resultKey = "resultKey"
 }
 
 public enum Region:String, StringRepresentableEnum, CaseIterable, Identifiable{
