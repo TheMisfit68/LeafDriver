@@ -161,7 +161,11 @@ open class LeafDriver:Configurable, Securable{
 		Task{
 			do {
 				let connectParameters = ConnectParameters(initialAppStr: self.leafProtocol.initialAppString)
-				self.connectionInfo = try await restAPI.decode(method:RestAPI.Method.POST, command: LeafCommand.connect, parameters: connectParameters, timeout: 30)
+				self.connectionInfo = try await restAPI.decode(method:RestAPI.Method.POST,
+															   command: LeafCommand.connect,
+															   parameters: connectParameters,
+															   dateDecodingStrategy: .iso8601,
+															   timeout: 30)
 				connectionState = max(connectionState, .connected)
 				logger.info("Leafdriver connected succesfully")
 			} catch let error{
@@ -185,7 +189,11 @@ open class LeafDriver:Configurable, Securable{
 													  timeZone: userSettings.timeZone,
 													  language: userSettings.language
 				)
-				self.session = try await restAPI.decode(method:RestAPI.Method.POST, command: LeafCommand.login, parameters: loginParameters, timeout: 75)
+				self.session = try await restAPI.decode(method:RestAPI.Method.POST, 
+														command: LeafCommand.login,
+														parameters: loginParameters,
+														dateDecodingStrategy: .iso8601,
+														timeout: 75)
 				connectionState = max(connectionState, .loggedIn)
 				logger.info("Leafdriver logged in succesfully")
 			} catch let error{

@@ -51,6 +51,7 @@ public class ACController{
 				self.airCoOnResultKey = try await restAPI.decode(method: .POST,
 																 command: LeafCommand.airCoOnRequest,
 																 includingBaseParameters: mainDriver.baseParameters,
+																 dateDecodingStrategy: .iso8601,
 																 timeout: 75)
                 
 				mainDriver.removeFromQueue(commandMethodPair)
@@ -73,6 +74,7 @@ public class ACController{
 				self.airCoOffResultKey = try await restAPI.decode(method: .POST,
 																  command: LeafCommand.airCoOffRequest,
 																  includingBaseParameters: mainDriver.baseParameters,
+																  dateDecodingStrategy: .iso8601,
 																  timeout: 75)
 				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
@@ -94,6 +96,7 @@ public class ACController{
 				self.airCoStatus = try await restAPI.decode(method: .POST,
 															command: LeafCommand.airCoStatus,
 															includingBaseParameters: mainDriver.baseParameters,
+															dateDecodingStrategy: .iso8601,
 															timeout: 75)
 				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)

@@ -36,6 +36,7 @@ public class Charger{
 				self.startChargingResultKey = try await restAPI.decode(method: .POST,
 																	   command: LeafCommand.startCharging,
 																	   includingBaseParameters: mainDriver.baseParameters,
+																	   dateDecodingStrategy: .iso8601,
 																	   timeout: 75)
 				mainDriver.removeFromQueue(commandMethodPair)
 				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)

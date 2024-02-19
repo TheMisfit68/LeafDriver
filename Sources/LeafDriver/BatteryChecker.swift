@@ -125,6 +125,7 @@ public class BatteryChecker{
 				self.batteryUpdateResultKey = try await restAPI.decode(method: .POST,
 																	   command: LeafCommand.batteryUpdateRequest,
 																	   includingBaseParameters: mainDriver.baseParameters,
+																	   dateDecodingStrategy: .iso8601,
 																	   timeout: 75)
 				
 				mainDriver.removeFromQueue(commandMethodPair)
@@ -155,14 +156,14 @@ public class BatteryChecker{
 														  timeout: 75)
 				
 				guard responseData != nil else { return }
-				let decoder:JSONDecoder = JSONDecoder()
-				let batteryUpdateStatus = try decoder.decode(BatteryUpdateStatus.self, from: responseData!)
-				self.batteryUpdateStatus = batteryUpdateStatus
-				let updateReady:Bool = self.batteryUpdateStatus?.responseFlag == "1"
+//				let decoder:JSONDecoder = JSONDecoder()
+//				let batteryUpdateStatus = try decoder.decode(BatteryUpdateStatus.self, from: responseData!)
+				self.batteryUpdateStatus = BatteryUpdateStatus(from:responseData!, dateDecodingStrategy: .iso8601)
 				
+				let updateReady:Bool = self.batteryUpdateStatus?.responseFlag == "1"
 				guard updateReady else  {mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn); return}
-				let batteryUpdateResponse = try decoder.decode(BatteryUpdateResponse.self, from: responseData!)
-				self.batteryUpdateResponse = batteryUpdateResponse
+//				let batteryUpdateResponse = try decoder.decode(BatteryUpdateResponse.self, from: responseData!)
+				self.batteryUpdateResponse = BatteryUpdateResponse(from:responseData!, dateDecodingStrategy: .iso8601)
 				
 				mainDriver.removeFromQueue(commandMethodPair)
 				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
@@ -188,6 +189,7 @@ public class BatteryChecker{
 				self.batteryStatus = try await restAPI.decode(method: .POST,
 															  command: LeafCommand.batteryStatus,
 															  includingBaseParameters: mainDriver.baseParameters,
+															  dateDecodingStrategy: .iso8601,
 															  timeout: 75)
 				
 				mainDriver.removeFromQueue(commandMethodPair)
