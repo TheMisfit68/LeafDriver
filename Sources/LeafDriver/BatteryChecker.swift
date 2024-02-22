@@ -150,19 +150,17 @@ public class BatteryChecker{
 		Task{
 			do {
 				let resultKeyParameters = ResultKeyParameters(resultKey: batteryUpdateResultKey?.resultKey ?? "")
-				let responseData = try await restAPI.post(command: LeafCommand.batteryUpdateResponse, 
+				let responseData = try await restAPI.post(command: LeafCommand.batteryUpdateResponse,
 														  parameters:resultKeyParameters,
 														  includingBaseParameters: mainDriver.baseParameters,
-														  timeout: 75)
+														  timeout: 75,
+														  logRespons: true)
 				
 				guard responseData != nil else { return }
-//				let decoder:JSONDecoder = JSONDecoder()
-//				let batteryUpdateStatus = try decoder.decode(BatteryUpdateStatus.self, from: responseData!)
 				self.batteryUpdateStatus = BatteryUpdateStatus(from:responseData!, dateDecodingStrategy: .iso8601)
-				
 				let updateReady:Bool = self.batteryUpdateStatus?.responseFlag == "1"
+				
 				guard updateReady else  {mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn); return}
-//				let batteryUpdateResponse = try decoder.decode(BatteryUpdateResponse.self, from: responseData!)
 				self.batteryUpdateResponse = BatteryUpdateResponse(from:responseData!, dateDecodingStrategy: .iso8601)
 				
 				mainDriver.removeFromQueue(commandMethodPair)
