@@ -5,9 +5,8 @@
 //  Created by Jan Verrept on 24/03/2020.
 //
 
-import JVSwift
+import Foundation
 import JVSwiftCore
-import JVNetworking
 
 public enum LeafCommand:String, StringRepresentableEnum{
 	

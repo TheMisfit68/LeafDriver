@@ -7,10 +7,9 @@
 
 import SwiftUI
 import RegexBuilder
-import JVSwift
-import JVSwiftCore
 import JVSecurity
 import JVUI
+import JVSwiftCore
 
 public struct LeafSettingsView: View, SettingsView, Securable {
 	

@@ -4,11 +4,9 @@
 //
 //  Created by Jan Verrept on 25/04/2020.
 //
-
 import Foundation
-import Combine
-import JVSwift
 import JVNetworking
+import JVSwiftCore
 
 @available(OSX 12.0, *)
 public class Charger{

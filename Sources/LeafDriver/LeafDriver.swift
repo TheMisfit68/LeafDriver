@@ -6,17 +6,14 @@
 //
 
 import Foundation
-import JVSwift
-import JVSwiftCore
+import OSLog
 import JVSecurity
 import JVNetworking
-import Combine
+import JVSwiftCore
 import CryptoSwift
-import OSLog
 
 @available(OSX 12.0, *)
 open class LeafDriver:Configurable, Securable{
-	
 	let logger = Logger(subsystem: "be.oneclick.LeafDriver", category:"LeafDriver")
 	
 	var leafProtocol:LeafProtocol

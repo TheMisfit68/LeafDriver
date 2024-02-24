@@ -5,9 +5,8 @@
 //  Created by Jan Verrept on 25/04/2020.
 //
 import Foundation
-import JVSwift
 import JVNetworking
-import Combine
+import JVSwiftCore
 
 @available(OSX 12.0, *)
 public class ACController{

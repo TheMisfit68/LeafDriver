@@ -4,12 +4,9 @@
 //
 //  Created by Jan Verrept on 25/04/2020.
 //
-
 import Foundation
-import JVSwift
 import JVNetworking
-import Combine
-import OSLog
+import JVSwiftCore
 
 public class BatteryChecker{
 	
