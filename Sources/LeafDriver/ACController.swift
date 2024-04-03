@@ -23,6 +23,8 @@ public class ACController{
     var airCoStatus:AirCoStatus?
     var airCoOnResultKey:AirCoOnResultKey?
     var airCoOffResultKey:AirCoOffResultKey?
+	
+	public var aircoIsRunning:Bool? = nil
     
     init(mainDriver:LeafDriver){
         self.mainDriver = mainDriver
@@ -31,6 +33,8 @@ public class ACController{
 
     public func setAirCo(to airCoState:airCoState){
         
+		aircoIsRunning = nil // From here on wait for a brand new status-feedback
+		
         if airCoState == .on{
             setAirCoOn()
         }else{
@@ -40,7 +44,7 @@ public class ACController{
     }
     
     private func setAirCoOn(){
-                
+           
 		let commandMethodPair:LeafDriver.LeafCommandMethodPair = (command:.airCoOnRequest , method:self.setAirCoOn)
 		guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue.enqueue(commandMethodPair); return}
         
@@ -54,17 +58,20 @@ public class ACController{
 																 timeout: 75)
                 
 				mainDriver.removeFromQueue(commandMethodPair)
+				
+				let nextCommandAndMethod:LeafDriver.LeafCommandMethodPair = (command:.airCoStatus, method:getAirCoStatus)
+				mainDriver.commandQueue.enqueue(nextCommandAndMethod)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
-                
 			}  catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
+			mainDriver.runCommandQueue()
         }
     }
     
     
     private func setAirCoOff(){
-		        
+		 
 		let commandMethodPair:LeafDriver.LeafCommandMethodPair = (command:.airCoOffRequest , method:self.setAirCoOff)
 		guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue.enqueue(commandMethodPair); return}
 
@@ -76,8 +83,10 @@ public class ACController{
 																  dateDecodingStrategy: .iso8601,
 																  timeout: 75)
 				mainDriver.removeFromQueue(commandMethodPair)
+				
+				let nextCommandAndMethod:LeafDriver.LeafCommandMethodPair = (command:.airCoStatus, method:getAirCoStatus)
+				mainDriver.commandQueue.enqueue(nextCommandAndMethod)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
-                
 			} catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
@@ -96,9 +105,10 @@ public class ACController{
 															command: LeafCommand.airCoStatus,
 															includingBaseParameters: mainDriver.baseParameters,
 															dateDecodingStrategy: .iso8601,
-															timeout: 75)
+															timeout: 120)
 				mainDriver.removeFromQueue(commandMethodPair)
                 mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
+				aircoIsRunning = (airCoStatus!.remoteAcRecords.remoteAcOperation == "START")
                 
 			} catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )

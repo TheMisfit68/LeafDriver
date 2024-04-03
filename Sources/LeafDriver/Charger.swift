@@ -16,6 +16,7 @@ public class Charger{
     var restAPI:LeafDriver.LeafAPI
     
     var startChargingResultKey:StartChargingResultKey?
+	public var chargingWasExecuted:Bool?
     
     
 	init(mainDriver:LeafDriver){
@@ -26,6 +27,7 @@ public class Charger{
 	
     public func startCharging(){
         
+		self.chargingWasExecuted = nil
 		let commandMethodPair:LeafDriver.LeafCommandMethodPair = (command:.startCharging , method:self.startCharging)
 		guard mainDriver.connectionState == .loggedIn else {mainDriver.commandQueue.enqueue(commandMethodPair); return}
         
@@ -36,9 +38,11 @@ public class Charger{
 																	   includingBaseParameters: mainDriver.baseParameters,
 																	   dateDecodingStrategy: .iso8601,
 																	   timeout: 75)
+				
 				mainDriver.removeFromQueue(commandMethodPair)
 				mainDriver.connectionState = max(mainDriver.connectionState, .loggedIn)
-                
+				self.chargingWasExecuted = true
+				
 			} catch let error{
 				mainDriver.handleLeafAPIError(error, for: commandMethodPair )
 			}
