@@ -46,7 +46,7 @@ public struct LeafSettingsView: View, SettingsView, Securable {
 					}
 					.frame(width: 200)
 					.pickerStyle(MenuPickerStyle())
-					.onChange(of: regionCode) { newValue in postNotification() }
+					.onChange(of: regionCode) { postNotification() }
 				}
 				HStack {
 					Text(String(localized: "Language", bundle:.module))
@@ -59,7 +59,7 @@ public struct LeafSettingsView: View, SettingsView, Securable {
 					}
 					.frame(width: 200)
 					.pickerStyle(MenuPickerStyle())
-					.onChange(of: language) { newValue in postNotification() }
+					.onChange(of: language) { postNotification() }
 				}
 				HStack {
 					Text(String(localized: "Timezone", bundle:.module))
@@ -72,7 +72,7 @@ public struct LeafSettingsView: View, SettingsView, Securable {
 					}
 					.frame(width: 200)
 					.pickerStyle(MenuPickerStyle())
-					.onChange(of: timeZone) { newValue in postNotification() }
+					.onChange(of: timeZone) { postNotification() }
 				}
 			}
 		}
