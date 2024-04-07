@@ -8,3 +8,5 @@ Sources/.DS_Store
 Sources/LeafDriver/.DS_Store
 Sources/LeafDriver/.DS_Store
 Sources/LeafDriver/.DS_Store
+.build
+.swiftpm/xcode/xcuserdata/janverrept.xcuserdatad/xcschemes/xcschememanagement.plist
