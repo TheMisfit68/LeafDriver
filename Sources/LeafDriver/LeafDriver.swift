@@ -13,8 +13,7 @@ import JVSwiftCore
 import CryptoSwift
 
 @available(OSX 12.0, *)
-open class LeafDriver:Configurable, Securable{
-	let logger = Logger(subsystem: "be.oneclick.LeafDriver", category:"LeafDriver")
+open class LeafDriver:Configurable, Securable, Loggable{
 	
 	var leafProtocol:LeafProtocol
 	
@@ -164,7 +163,7 @@ open class LeafDriver:Configurable, Securable{
 															   dateDecodingStrategy: .iso8601,
 															   timeout: 30)
 				connectionState = max(connectionState, .connected)
-				logger.info("Leafdriver connected succesfully")
+				LeafDriver.logger.info("Leafdriver connected succesfully")
 			} catch let error{
 				handleLeafAPIError(error)
 			}
@@ -192,7 +191,7 @@ open class LeafDriver:Configurable, Securable{
 														dateDecodingStrategy: .iso8601,
 														timeout: 75)
 				connectionState = max(connectionState, .loggedIn)
-				logger.info("Leafdriver logged in succesfully")
+				LeafDriver.logger.info("Leafdriver logged in succesfully")
 			} catch let error{
 				handleLeafAPIError(error)
 			}
@@ -241,7 +240,7 @@ open class LeafDriver:Configurable, Securable{
 			commandQueue.enqueue( commandMethodPair )
 		}
 		errorMessage += error.localizedDescription
-		logger.error("\(errorMessage)")
+		LeafDriver.logger.error("\(errorMessage)")
 	}
 	
 }
