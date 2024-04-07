@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/krzyzanowskim/CryptoSwift.git",
       "state" : {
-        "revision" : "4b0565384d3c4c588af09e660535b2c7c9bf5b39",
-        "version" : "1.4.2"
+        "revision" : "7892a123f7e8d0fe62f9f03728b17bbd4f94df5c",
+        "version" : "1.8.1"
       }
     },
     {
@@ -42,7 +42,7 @@
       "location" : "https://github.com/TheMisfit68/JVSecurity.git",
       "state" : {
         "branch" : "main",
-        "revision" : "40a59a1a05049decf899699ebb8592ff675f00f6"
+        "revision" : "59218b5f77113728d28b6ded2d38f783f00a68e7"
       }
     },
     {
@@ -51,7 +51,7 @@
       "location" : "https://github.com/TheMisfit68/JVSwiftCore.git",
       "state" : {
         "branch" : "main",
-        "revision" : "39481c234fbdab22bd1dc9e1ced8ee6214439015"
+        "revision" : "0c313abdd08788b7984fb018c4f00a6aa0ef8c6f"
       }
     },
     {
