@@ -15,8 +15,11 @@ public struct LeafProtocolV2:LeafProtocol{
     
     public var version:Int = 2
     
-    public let baseURL: String = "https://gdcportalgw.its-mo.com/api_v210707_NE/gdc/"
-    
+//	Stopped working May 2024
+//    public let baseURL: String = "https://gdcportalgw.its-mo.com/api_v210707_NE/gdc/"
+	
+	public let baseURL: String = "https://gdcportalgw.its-mo.com/api_v230317_NE/gdc/"
+
     public var initialAppString:String = "9s5rfKVuMrT03RtzajWNcA"
     
 }
